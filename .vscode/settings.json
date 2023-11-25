@@ -1,0 +1,8 @@
+{
+    "java.jdt.ls.java.home": "C:/Program Files/Java/jdk-21",
+    "java.compile.nullAnalysis.mode": "disabled",
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.project.referencedLibraries": [
+        "C:/Program Files/Java/javafx-sdk-21.0.1/lib"
+    ]
+}
