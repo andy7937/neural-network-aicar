@@ -7,8 +7,10 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 
 public class Simulator extends JFrame {
@@ -18,7 +20,7 @@ public class Simulator extends JFrame {
     private double carAcceleration = 0; // Car acceleration
     private double carAngle = 0; // Car angle in degrees
     private final int baseCarTurnRate = 10; // Car turning speed
-    private final double maxVelocity = 10; // Maximum velocity
+    private final double maxVelocity = 8; // Maximum velocity
     private final double accelerationRate = 0.075; // Acceleration rate
     private final double velocityDecayRate = 0.5; // Velocity decay rate
     private final double friction = 0.02; // Friction to simulate deceleration
@@ -30,7 +32,9 @@ public class Simulator extends JFrame {
 
     private List<Wall> raceCourse;
     private List<Point> barriers;
-    private List<Point> sensorCollisionPoints;
+    private volatile List<Point> sensorCollisionPoints = new CopyOnWriteArrayList<>();
+    private BufferedImage offScreenBuffer;
+
 
     public Simulator() {
         setTitle("Car Racing Game");
@@ -38,6 +42,7 @@ public class Simulator extends JFrame {
         setResizable(true);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         sensorCollisionPoints = new ArrayList<>();
+        offScreenBuffer = new BufferedImage(trackWidth, trackHeight, BufferedImage.TYPE_INT_ARGB);
 
         carX = trackWidth / 2.0;
         carY = trackHeight / 2.0;
@@ -68,20 +73,52 @@ public class Simulator extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 panel.moveCar();
+                repaint();
             }
         });
 
+        // Create a thread to calculate the sensor collision points
+        Thread sensorThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    panel.calculateSensorCollisionPoints();
+                    try {
+                        Thread.sleep(10); // Adjust the sleep duration as needed
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        sensorThread.start(); // Start the sensor thread
         timer.start(); // Start the timer
     }
 
     private void initializeRaceCourse() {
 
         raceCourse = new ArrayList<>(); // Initialize the raceCourse list
-        raceCourse.add(createWall(new Point(100, 100), new Point(500, 100)));
-        raceCourse.add(createWall(new Point(500, 100), new Point(700, 300)));
-        raceCourse.add(createWall(new Point(700, 300), new Point(500, 500)));
-        raceCourse.add(createWall(new Point(500, 500), new Point(100, 500)));
-        raceCourse.add(createWall(new Point(100, 500), new Point(100, 100))); 
+        raceCourse.add(createWall(new Point(100, 100), new Point(1820, 100)));
+        raceCourse.add(createWall(new Point(1820, 100), new Point(1820, 980)));
+        raceCourse.add(createWall(new Point(1820, 980), new Point(100, 980)));
+        raceCourse.add(createWall(new Point(100, 980), new Point(100, 100)));
+        
+        // Inner Walls
+        raceCourse.add(createWall(new Point(300, 300), new Point(1500, 300)));
+        raceCourse.add(createWall(new Point(1500, 800), new Point(300, 800)));
+        raceCourse.add(createWall(new Point(300, 800), new Point(300, 300)));
+        
+        // Additional Turns
+        raceCourse.add(createWall(new Point(400, 600), new Point(500, 600)));
+        raceCourse.add(createWall(new Point(500, 600), new Point(500, 700)));
+        raceCourse.add(createWall(new Point(500, 700), new Point(400, 700)));
+        raceCourse.add(createWall(new Point(400, 700), new Point(400, 600)));
+        
+        raceCourse.add(createWall(new Point(1200, 400), new Point(1300, 400)));
+        raceCourse.add(createWall(new Point(1300, 400), new Point(1300, 500)));
+        raceCourse.add(createWall(new Point(1300, 500), new Point(1200, 500)));
+        raceCourse.add(createWall(new Point(1200, 500), new Point(1200, 400)));
 
 
         barriers = new ArrayList<>(); 
@@ -136,9 +173,9 @@ public class Simulator extends JFrame {
                     }
                     break;
                 case KeyEvent.VK_SPACE:
-                    if (carVelocity > 0) {
+                    if (carVelocity > 0.5) {
                         carVelocity -= velocityDecayRate;
-                    } else if (carVelocity < 0) {
+                    } else if (carVelocity < -0.5) {
                         carVelocity += velocityDecayRate;
                     }
                     break;
@@ -177,9 +214,6 @@ public class Simulator extends JFrame {
                 carVelocity = 0;
             }
 
-            calculateSensorCollisionPoints();
-
-        
             // Limit velocity to maxVelocity
             carVelocity = Math.min(maxVelocity, Math.max(-maxVelocity, carVelocity));
         
@@ -232,7 +266,7 @@ public class Simulator extends JFrame {
         }
 
         private void calculateSensorCollisionPoints() {
-            sensorCollisionPoints.clear();
+            List<Point> newSensorCollisionPoints = new ArrayList<>();
         
             int numSensors = 7; // Adjust the number of sensors as needed
             double startSensorAngle = Math.toRadians(-45); // Start angle for the first sensor
@@ -244,53 +278,62 @@ public class Simulator extends JFrame {
                 double sensorX = carX + carWidth / 2.0;
                 double sensorY = carY + carHeight / 2.0;
         
-                double sensorDistance = 200; // Adjust the sensor distance as needed
-        
-                double sensorEndX = sensorX + sensorDistance * Math.cos(angleInRadians + startSensorAngle);
-                double sensorEndY = sensorY + sensorDistance * Math.sin(angleInRadians + startSensorAngle);
+                double sensorEndX = sensorX + Math.cos(angleInRadians + startSensorAngle);
+                double sensorEndY = sensorY + Math.sin(angleInRadians + startSensorAngle);
         
                 Point collisionPoint = calculateCollisionPoint(sensorX, sensorY, sensorEndX, sensorEndY);
         
-
-                if (collisionPoint != null){
-                     // Check if the collision point is in front of the car
+                if (collisionPoint != null) {
+                    // Check if the collision point is in front of the car
                     double angleToCollisionPoint = Math.atan2(collisionPoint.y - sensorY, collisionPoint.x - sensorX);
                     double angleDifference = Math.abs(Math.atan2(Math.sin(angleToCollisionPoint - angleInRadians),
-                                                                Math.cos(angleToCollisionPoint - angleInRadians)));
-            
+                            Math.cos(angleToCollisionPoint - angleInRadians)));
+        
                     // Adjust this threshold to control the sensitivity of the sensors
                     double angleThreshold = Math.toRadians(90);
-            
+        
                     if (angleDifference <= angleThreshold) {
-                        sensorCollisionPoints.add(collisionPoint);
+                        newSensorCollisionPoints.add(collisionPoint);
                     }
-
                 }
-               
         
                 startSensorAngle += angleIncrement;
             }
-        }
         
+            synchronized (sensorCollisionPoints) {
+                sensorCollisionPoints.clear();
+                sensorCollisionPoints.addAll(newSensorCollisionPoints);
+            }
+        }
+    
         
         private Point calculateCollisionPoint(double startX, double startY, double endX, double endY) {
             Point closestCollisionPoint = null;
             double closestDistance = Double.MAX_VALUE;
-
+        
             for (Point barrier : barriers) {
-                if (lineIntersectsCircle(startX, startY, endX, endY, barrier.x, barrier.y, 5)) {
-                    double distance = Math.sqrt(Math.pow(barrier.x - startX, 2) + Math.pow(barrier.y - startY, 2));
-                    if (distance < closestDistance) {
-                        closestDistance = distance;
-                        closestCollisionPoint = new Point((int) barrier.x, (int) barrier.y);
+                // Check if the barrier is in front of the car
+                double angleToBarrier = Math.atan2(barrier.y - startY, barrier.x - startX);
+                double angleDifference = Math.abs(Math.atan2(Math.sin(angleToBarrier - Math.toRadians(carAngle)),
+                        Math.cos(angleToBarrier - Math.toRadians(carAngle))));
+        
+                // Adjust this threshold to control the sensitivity of the sensors
+                double angleThreshold = Math.toRadians(90);
+        
+                if (angleDifference <= angleThreshold) {
+                    // Check if the barrier intersects the sensor line
+                    if (lineIntersectsCircle(startX, startY, endX, endY, barrier.x, barrier.y, 5)) {
+                        double distance = Math.sqrt(Math.pow(barrier.x - startX, 2) + Math.pow(barrier.y - startY, 2));
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            closestCollisionPoint = new Point((int) barrier.x, (int) barrier.y);
+                        }
                     }
                 }
-
             }
-
+        
             return closestCollisionPoint != null ? closestCollisionPoint : closestCollisionPoint;
         }
-
         
         private boolean lineIntersectsCircle(double startX, double startY, double endX, double endY, double circleX, double circleY, double radius) {
             double dx = endX - startX;
@@ -304,15 +347,20 @@ public class Simulator extends JFrame {
         }
 
 
-
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            drawTrack(g);
-            drawSensorLines(g);
-            drawCar(g);
-            drawSpedometer(g);
-            drawSensorPos(g);
+
+            Graphics offScreenGraphics = offScreenBuffer.getGraphics();
+            offScreenGraphics.clearRect(0, 0, trackWidth, trackHeight);
+
+            drawTrack(offScreenGraphics);
+            drawSensorLines(offScreenGraphics);
+            drawCar(offScreenGraphics);
+            drawSpedometer(offScreenGraphics);
+            drawSensorPos(offScreenGraphics);
+
+            g.drawImage(offScreenBuffer, 0, 0, this);
         }
 
         private void drawTrack(Graphics g) {
@@ -329,13 +377,30 @@ public class Simulator extends JFrame {
 
         private void drawSensorLines(Graphics g) {
             g.setColor(Color.YELLOW);
-            for (Point sensorCollisionPoint : sensorCollisionPoints) {
-                if (sensorCollisionPoint != null){
-                    g.drawLine((int) carX + carWidth / 2, (int) carY + carHeight / 2,
-                    sensorCollisionPoint.x, sensorCollisionPoint.y);
+        
+            synchronized (sensorCollisionPoints) {
+                for (Point sensorCollisionPoint : sensorCollisionPoints) {
+                    if (sensorCollisionPoint != null) {
+                        g.drawLine((int) carX + carWidth / 2, (int) carY + carHeight / 2,
+                                sensorCollisionPoint.x, sensorCollisionPoint.y);
+                    }
                 }
             }
-            
+        }
+
+        private void drawSensorPos(Graphics g) {
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("TimesRoman", Font.PLAIN, 20));
+        
+            // Create a copy of sensorCollisionPoints to avoid ConcurrentModificationException
+            List<Point> sensorPointsCopy = new ArrayList<>(sensorCollisionPoints);
+        
+            for (int i = 0; i < sensorPointsCopy.size(); i++) {
+                Point sensorCollisionPoint = sensorPointsCopy.get(i);
+                if (sensorCollisionPoint != null) {
+                    g.drawString("Sensor " + (i + 1) + ": X: " + sensorCollisionPoint.x + " Y: " + sensorCollisionPoint.y, 1700, 40 + i * 25);
+                }
+            }
         }
 
         private void drawSpedometer(Graphics g) {
@@ -343,18 +408,6 @@ public class Simulator extends JFrame {
             g.setFont(new Font("TimesRoman", Font.PLAIN, 20));
             String formattedVelocity = String.format("%.1f", carVelocity * 10);
             g.drawString("Speed: " +  formattedVelocity + " KM/H", 10, 20);
-        }
-
-
-        private void drawSensorPos(Graphics g) {
-            g.setColor(Color.WHITE);
-            g.setFont(new Font("TimesRoman", Font.PLAIN, 20));
-            int y = 40;
-            for (Point sensor: sensorCollisionPoints) {
-                g.drawString("X: " + sensor.x + " Y: " + sensor.y, 1700, y);
-
-                y += 25;
-            }
         }
 
         private void drawCar(Graphics g) {
