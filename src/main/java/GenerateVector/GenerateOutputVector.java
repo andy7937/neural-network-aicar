@@ -12,24 +12,20 @@ public class GenerateOutputVector {
     public INDArray outputVector;
 
     public int generateOutputVector(INDArray input, NeuralNetwork neuralNetwork) {
-        // Assuming the neural network has 5 outputs:
+        // Assuming the neural network has 4 outputs:
         // 0. W (move forward)
         // 1. A (turn left)
         // 2. S (move backward)
         // 3. D (turn right)
-        // 4. space (stop)
-
-        // Initialize the output vector with zeros
-        INDArray output = Nd4j.zeros(1, numInputs);
+        // 4. Random 
 
         // Get the neural network's predictions
-        INDArray predictions = neuralNetwork.predict(output);/* Call your neural network's predict method with the input */;
-        outputVector = predictions;
+        INDArray predictions = neuralNetwork.predict(input);
 
         // Choose the action based on the highest predicted probability
         int actionIndex = Nd4j.argMax(predictions, 1).getInt(0);
 
-        // Set the corresponding element in the output vector to 1
+        outputVector = predictions;
 
         return actionIndex;
     }

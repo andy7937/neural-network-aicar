@@ -19,6 +19,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 
@@ -47,7 +48,8 @@ public class Simulator extends JFrame {
     public double totalDistanceTraveled = 0;
     private int numInputs = 16;
     private int numHiddenNeurons = 10;
-    private int numOutputs = 5;
+    private int numOutputs = 4;
+    private int stepsInSameSpot = 0;
     private List<INDArray> outputList = new ArrayList<>();
     private List<INDArray> inputList = new ArrayList<>();
     private List<Integer> actionList = new ArrayList<>();
@@ -271,6 +273,7 @@ public class Simulator extends JFrame {
 
 
             sendNeuralNetworkInformation();
+            totalDistanceTraveled++;
 
 
             // Update velocity based on acceleration
@@ -313,7 +316,6 @@ public class Simulator extends JFrame {
                     }
 
                     // collision
-                    System.out.println("Collision detected!");
                     handleCollision();
 
                 }
@@ -336,6 +338,19 @@ public class Simulator extends JFrame {
             } else if (carY > trackHeight - carHeight) {
                 carVelocity = 0;
                 carY = trackHeight - carHeight;
+            }
+
+
+            if (carVelocity == 0){
+                stepsInSameSpot++;
+                totalDistanceTraveled = totalDistanceTraveled - 2;
+            }
+            else{
+                stepsInSameSpot = 0;
+            }
+
+            if (stepsInSameSpot > 100){
+                handleCollision();
             }
     
             repaint(); 
@@ -433,6 +448,8 @@ public class Simulator extends JFrame {
             outputList.add(generateOutputVector.outputVector);
             inputList.add(inputVector);
             actionList.add(outputAction);
+            double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
+            System.out.println(outputAction);
 
             // Update the neural network based on the output given
             switch (outputAction) {
@@ -443,27 +460,13 @@ public class Simulator extends JFrame {
                     carAcceleration = -accelerationRate;
                     break;
                 case 2:
-                    if (carVelocity != 0) {
-
-                        // Adjust the turning rate based on the car's velocity
-                        double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
                         carAngle -= adjustedTurnRate; 
-                    }
                     break;
                 case 3:
-                    if (carVelocity != 0) {
-                        
-                        // Adjust the turning rate based on the car's velocity
-                        double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
                         carAngle += adjustedTurnRate;
-                    }
                     break;
                 case 4:
-                    if (carVelocity > 0.5) {
-                        carVelocity -= velocityDecayRate;
-                    } else if (carVelocity < -0.5) {
-                        carVelocity += velocityDecayRate;
-                    }
+                        randomaction();
                     break;
                 default:
                     break;
@@ -471,10 +474,41 @@ public class Simulator extends JFrame {
 
 
         }
+        
+
+        private void randomaction(){
+
+            Random randomaction = new Random();
+            int outputAction = randomaction.nextInt(4);
+            double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
+
+
+                        switch (outputAction) {
+                case 0:
+                    carAcceleration = accelerationRate;
+                    totalDistanceTraveled++;
+                    break;
+                case 1:
+                    carAcceleration = -accelerationRate;
+                    totalDistanceTraveled++;
+                    break;
+                case 2:
+                        carAngle -= adjustedTurnRate; 
+                        totalDistanceTraveled = totalDistanceTraveled + 2;
+                    break;
+                case 3:
+                        carAngle += adjustedTurnRate;
+                        totalDistanceTraveled = totalDistanceTraveled + 2;
+                    break;
+                default:
+                    break;
+            }
+        }
 
         private void handleCollision(){
             // When a collision occurs, update the neural network based on the total distance traveled
             neuralNetwork.updateNeuralNetwork(inputList, outputList, actionList, totalDistanceTraveled);
+              System.out.println("Collision detected!");
 
             // Reset car position and total distance traveled
             carX = trackWidth / 2.0;

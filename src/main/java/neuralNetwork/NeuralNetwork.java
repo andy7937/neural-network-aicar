@@ -13,6 +13,7 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.learning.config.Adam;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 
@@ -22,15 +23,25 @@ public class NeuralNetwork {
     public static int numInputs;
     public static int numHiddenNeurons;
     public static int numOutputs;
+    private double initialEpsilon = 0.1;  // Initial exploration rate
+    private double minEpsilon = 0.01;     // Minimum exploration rate
+    private double epsilonDecayRate = 0.001; // Exploration rate decay
+    private double epsilon = initialEpsilon;
+    private double initialLearningRate = 0.001;
+    private double minLearningRate = 0.0001;
+    private double learningRateMultiplier = 1.5; // Increase learning rate when reward doesn't increase
+
+    private double learningRate = initialLearningRate;
+    private double previousReward = 0.0;
 
     public NeuralNetwork(int numInputs, int numHiddenNeurons, int numOutputs) {
         Random random = new Random(System.currentTimeMillis());
         int i = random.nextInt(100000000);
         int j = random.nextInt(100000000);
-    
+
         // Randomize the learning rate during initialization
-        double learningRate = random.nextDouble() * 0.2; // You can adjust the range as needed
-    
+        double learningRate = 0.001; // You can adjust the range as needed
+
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
                 .seed(i + j + 5)
                 .weightInit(WeightInit.XAVIER)
@@ -47,42 +58,50 @@ public class NeuralNetwork {
                         .nOut(numOutputs)
                         .build())
                 .build();
-    
+
         this.model = new MultiLayerNetwork(conf);
         this.model.init();
     }
 
-public void updateNeuralNetwork(List<INDArray> inputVectorList, List<INDArray> outputVectorList, List<Integer> actionList, double finalReward) {
-    // Assuming you have Q-learning parameters like discount factor (gamma)
-    double gamma = 0.9; // Adjust as needed
+    public void updateNeuralNetwork(List<INDArray> inputVectorList, List<INDArray> outputVectorList, List<Integer> actionList, double finalReward) {
+        double gamma = 0.9;
 
-    for (int i = 0; i < inputVectorList.size() - 1; i++) {
-        
-        INDArray currentState = inputVectorList.get(i);
-        INDArray currentQValues = outputVectorList.get(i);
-        int actionIndex = actionList.get(i); // Get the action taken at this step
+        for (int i = 0; i < inputVectorList.size() - 1; i++) {
+            INDArray currentState = inputVectorList.get(i);
+            INDArray currentQValues = outputVectorList.get(i);
+            int actionIndex;
 
-        // Assuming you have access to the Q-values for the next state
-        INDArray nextState = inputVectorList.get(i + 1);
-        INDArray nextQValues = predict(nextState);
+            if (Math.random() < epsilon) {
+                actionIndex = (int) (Math.random() * numOutputs);
+            } else {
+                actionIndex = Nd4j.argMax(currentQValues, 1).getInt(0);
+            }
 
-        // Calculate the max Q-value for the next state
-        double maxNextQValue = nextQValues.maxNumber().doubleValue();
-        double updatedQValue = finalReward + gamma * maxNextQValue;
+            INDArray nextState = inputVectorList.get(i + 1);
+            INDArray nextQValues = predict(nextState);
 
-        // Assuming currentQValues is a copy of the output from the neural network
-        INDArray updatedQValues = currentQValues.dup();
-        updatedQValues.putScalar(actionIndex, updatedQValue);
+            double maxNextQValue = nextQValues.maxNumber().doubleValue();
+            double updatedQValue = finalReward + gamma * maxNextQValue;
 
-        // Train the neural network using the updated Q-values as target
-        trainStep(currentState, updatedQValues);
+            INDArray updatedQValues = currentQValues.dup();
+            updatedQValues.putScalar(actionIndex, updatedQValue);
+
+            trainStep(currentState, updatedQValues);
+        }
+
+        // Decay epsilon
+        epsilon = Math.max(minEpsilon, epsilon - epsilonDecayRate);
+
+        // Adjust learning rate based on the change in reward
+        if (finalReward > previousReward) {
+            learningRate = Math.max(minLearningRate, learningRate * learningRateMultiplier);
+        } else {
+            learningRate = Math.max(minLearningRate, learningRate / learningRateMultiplier);
+        }
+
+        // Update the previous reward for the next iteration
+        previousReward = finalReward;
     }
-}
-
-    
-    
-    
-    
     
     // Train the neural network with a single step of simulation data
     public INDArray trainStep(INDArray input, INDArray target) {

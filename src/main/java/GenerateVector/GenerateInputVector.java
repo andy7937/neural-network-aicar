@@ -34,28 +34,30 @@ public class GenerateInputVector {
         // 15. car acceleration
 
 
-        // Initialize the input vector with zeros
-        INDArray inputVector = Nd4j.zeros(1, numInputs);
+    // Initialize the input vector with zeros
+    INDArray inputVector = Nd4j.zeros(1, numInputs);
 
-        // Set the sensor values
-        inputVector.putScalar(0, normalize(sensorCollisionPoints.get(0).x, 0, 1920));
-        inputVector.putScalar(1, normalize(sensorCollisionPoints.get(0).y, 0, 1080));
-        inputVector.putScalar(2, normalize(sensorCollisionPoints.get(1).x, 0, 1920));
-        inputVector.putScalar(3, normalize(sensorCollisionPoints.get(1).y, 0, 1080));
-        inputVector.putScalar(4, normalize(sensorCollisionPoints.get(2).x, 0, 1920));
-        inputVector.putScalar(5, normalize(sensorCollisionPoints.get(2).y, 0, 1080));
-        inputVector.putScalar(6, normalize(sensorCollisionPoints.get(3).x, 0, 1920));
-        inputVector.putScalar(7, normalize(sensorCollisionPoints.get(3).y, 0, 1080));
-        inputVector.putScalar(8, normalize(sensorCollisionPoints.get(4).x, 0, 1920));
-        inputVector.putScalar(9, normalize(sensorCollisionPoints.get(4).y, 0, 1080));
-        inputVector.putScalar(10, normalize(sensorCollisionPoints.get(5).x, 0, 1920));
-        inputVector.putScalar(11, normalize(sensorCollisionPoints.get(5).y, 0, 1080));
-        inputVector.putScalar(12, normalize(sensorCollisionPoints.get(6).x, 0, 1920));
-        inputVector.putScalar(13, normalize(sensorCollisionPoints.get(6).y, 0, 1080));
+    // Set the sensor values
+    for (int i = 0; i < Math.min(sensorCollisionPoints.size(), 7); i++) {
+        Point sensorPoint = sensorCollisionPoints.get(i);
 
-        // Set the car velocity and acceleration
-        inputVector.putScalar(14, normalize(carVelocity, 0 , 80));
-        inputVector.putScalar(15, normalize(carAcceleration, 0, 80));
+        if (sensorPoint.x == 0 && sensorPoint.y == 0) {
+            inputVector.putScalar(i * 2, -1);
+            inputVector.putScalar(i * 2 + 1, -1);
+
+        }else{
+            inputVector.putScalar(i * 2, normalize(sensorPoint.x, 0, 1920));
+            inputVector.putScalar(i * 2 + 1, normalize(sensorPoint.y, 0, 1080));
+
+        }
+
+
+
+    }
+
+    // Set the car velocity and acceleration
+    inputVector.putScalar(14, normalize(carVelocity, 0 , 80));
+    inputVector.putScalar(15, normalize(carAcceleration, 0, 80));
 
         return inputVector;
 
