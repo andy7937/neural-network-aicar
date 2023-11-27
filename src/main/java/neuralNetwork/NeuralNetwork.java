@@ -2,6 +2,7 @@ package neuralNetwork;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Random;
 
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
@@ -50,6 +51,38 @@ public class NeuralNetwork {
         this.model = new MultiLayerNetwork(conf);
         this.model.init();
     }
+
+    public void updateNeuralNetwork(List<INDArray> inputVectorList, List<INDArray> outputVectorList, List<Integer> actionList, double finalReward) {
+        // Assuming you have Q-learning parameters like discount factor (gamma)
+        double gamma = 0.9; // Adjust as needed
+    
+        for (int i = 0; i < inputVectorList.size() - 1; i++) {
+            
+            INDArray currentState = inputVectorList.get(i);
+            INDArray currentQValues = outputVectorList.get(i);
+            int actionIndex = actionList.get(i); // Get the action taken at this step
+    
+            // Assuming you have access to the Q-values for the next state
+            INDArray nextState = inputVectorList.get(i + 1);
+            INDArray nextQValues = predict(nextState);
+    
+            // Calculate the max Q-value for the next state
+            double maxNextQValue = nextQValues.maxNumber().doubleValue();
+            double updatedQValue = finalReward + gamma * maxNextQValue;
+    
+            // Assuming currentQValues is a copy of the output from the neural network
+            INDArray updatedQValues = currentQValues.dup();
+            updatedQValues.putScalar(actionIndex, updatedQValue);
+    
+            // Train the neural network using the updated Q-values as target
+            trainStep(currentState, updatedQValues);
+        }
+    }
+    
+    
+    
+    
+    
     
     // Train the neural network with a single step of simulation data
     public INDArray trainStep(INDArray input, INDArray target) {

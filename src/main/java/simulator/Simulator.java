@@ -1,11 +1,20 @@
 package simulator;
 
 import javax.swing.*;
+
+import org.nd4j.linalg.api.ndarray.INDArray;
+
+import GenerateVector.GenerateInputVector;
+import GenerateVector.GenerateOutputVector;
+import neuralNetwork.NeuralNetwork;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -34,6 +43,16 @@ public class Simulator extends JFrame {
     private List<Point> barriers;
     private volatile List<Point> sensorCollisionPoints = new CopyOnWriteArrayList<>();
     private BufferedImage offScreenBuffer;
+    private Point firstClick;
+    public double totalDistanceTraveled = 0;
+    public int numInputs = 16;
+    public int numHiddenNeurons = 11;
+    public int numOutputs = 5;
+    private List<INDArray> outputList = new ArrayList<>();
+    private List<INDArray> inputList = new ArrayList<>();
+    private List<Integer> actionList = new ArrayList<>();
+
+
 
 
     public Simulator() {
@@ -41,6 +60,12 @@ public class Simulator extends JFrame {
         setSize(trackWidth, trackHeight);
         setResizable(true);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // Initialize the neural networks
+        NeuralNetwork neuralNetwork = new NeuralNetwork(numInputs, numHiddenNeurons, numOutputs);
+        GenerateInputVector.numInputs = numInputs;
+        GenerateOutputVector.numOutputs = numOutputs;
+
         sensorCollisionPoints = new ArrayList<>();
         offScreenBuffer = new BufferedImage(trackWidth, trackHeight, BufferedImage.TYPE_INT_ARGB);
 
@@ -50,7 +75,7 @@ public class Simulator extends JFrame {
         // Initialize white spots
         initializeRaceCourse();
 
-        SimulatorPanel panel = new SimulatorPanel();
+        SimulatorPanel panel = new SimulatorPanel(neuralNetwork);
         add(panel);
 
         addKeyListener(new KeyListener() {
@@ -67,8 +92,31 @@ public class Simulator extends JFrame {
             }
         });
 
+        // For creating walls with clicks if needed
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int mouseX = e.getX();
+                int mouseY = e.getY();
+
+                if (firstClick == null) {
+                    // First click
+                    firstClick = new Point(mouseX, mouseY);
+                } else {
+                    // Second click
+                    Point secondClick = new Point(mouseX, mouseY);
+                    raceCourse.add(createWall(firstClick, secondClick));
+
+                    // Reset firstClick for the next wall
+                    firstClick = null;
+                    initBarrier();
+                }
+            }
+        });
+
         setFocusable(true);
 
+        // Create a to repaint the panel every delay milliseconds
         Timer timer = new Timer(delay, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -99,42 +147,55 @@ public class Simulator extends JFrame {
     private void initializeRaceCourse() {
 
         raceCourse = new ArrayList<>(); // Initialize the raceCourse list
-        raceCourse.add(createWall(new Point(100, 100), new Point(1820, 100)));
-        raceCourse.add(createWall(new Point(1820, 100), new Point(1820, 980)));
-        raceCourse.add(createWall(new Point(1820, 980), new Point(100, 980)));
-        raceCourse.add(createWall(new Point(100, 980), new Point(100, 100)));
-        
-        // Inner Walls
-        raceCourse.add(createWall(new Point(300, 300), new Point(1500, 300)));
-        raceCourse.add(createWall(new Point(1500, 800), new Point(300, 800)));
-        raceCourse.add(createWall(new Point(300, 800), new Point(300, 300)));
-        
-        // Additional Turns
-        raceCourse.add(createWall(new Point(400, 600), new Point(500, 600)));
-        raceCourse.add(createWall(new Point(500, 600), new Point(500, 700)));
-        raceCourse.add(createWall(new Point(500, 700), new Point(400, 700)));
-        raceCourse.add(createWall(new Point(400, 700), new Point(400, 600)));
-        
-        raceCourse.add(createWall(new Point(1200, 400), new Point(1300, 400)));
-        raceCourse.add(createWall(new Point(1300, 400), new Point(1300, 500)));
-        raceCourse.add(createWall(new Point(1300, 500), new Point(1200, 500)));
-        raceCourse.add(createWall(new Point(1200, 500), new Point(1200, 400)));
 
+        // create outer walls
+        raceCourse.add(createWall(new Point(100, 100), new Point(100, 980)));
+        raceCourse.add(createWall(new Point(100, 980), new Point(1820, 980)));
+        raceCourse.add( createWall(new Point(1820, 980), new Point(1820, 100)));
+        raceCourse.add( createWall(new Point(1820, 100), new Point(100, 100)));
 
+        // create inner walls
+        raceCourse.add(createWall(new Point(300, 300), new Point(500, 300)));
+        raceCourse.add(createWall(new Point(500, 300), new Point(500, 500)));
+        raceCourse.add(createWall(new Point(500, 500), new Point(300, 500)));
+        raceCourse.add(createWall(new Point(300, 500), new Point(300, 300)));
+
+        raceCourse.add(createWall(new Point(1400, 300), new Point(1600, 300)));
+        raceCourse.add(createWall(new Point(1600, 300), new Point(1600, 500)));
+        raceCourse.add(createWall(new Point(1600, 500), new Point(1400, 500)));
+        raceCourse.add(createWall(new Point(1400, 500), new Point(1400, 300)));
+
+        raceCourse.add(createWall(new Point(700, 200), new Point(900, 200)));
+        raceCourse.add(createWall(new Point(900, 200), new Point(900, 400)));
+        raceCourse.add(createWall(new Point(900, 400), new Point(700, 400)));
+        raceCourse.add(createWall(new Point(700, 400), new Point(700, 200)));
+
+        raceCourse.add(createWall(new Point(1200, 700), new Point(1400, 700)));
+        raceCourse.add(createWall(new Point(1400, 700), new Point(1400, 900)));
+        raceCourse.add(createWall(new Point(1400, 900), new Point(1200, 900)));
+        raceCourse.add(createWall(new Point(1200, 900), new Point(1200, 700)));
+
+        // Initialize the barriers list
         barriers = new ArrayList<>(); 
+                initBarrier();
+
+    }
+
+    public void initBarrier(){
 
         // collision detection
         for (Wall wall : raceCourse) {
         Point start = wall.getStart();
         Point end = wall.getEnd();
 
-        // Iterate through each point on the line segment between start and end
-        for (int t = 0; t <= 100; t++) {
-            int x = start.x + t * (end.x - start.x) / 100;
-            int y = start.y + t * (end.y - start.y) / 100;
-            barriers.add(new Point(x, y));
+            // Iterate through each point on the line segment between start and end
+            for (int t = 0; t <= 100; t++) {
+                int x = start.x + t * (end.x - start.x) / 100;
+                int y = start.y + t * (end.y - start.y) / 100;
+                barriers.add(new Point(x, y));
+            }
         }
-}
+
     }
 
 
@@ -146,6 +207,17 @@ public class Simulator extends JFrame {
     }
 
     public class SimulatorPanel extends JPanel {
+
+        private NeuralNetwork neuralNetwork;
+        private GenerateInputVector generateInputVector;
+        private GenerateOutputVector generateOutputVector;
+
+        public SimulatorPanel(NeuralNetwork neuralNetwork) {
+            this.neuralNetwork = neuralNetwork;
+            this.generateInputVector = new GenerateInputVector();
+            this.generateOutputVector = new GenerateOutputVector();
+        }
+
 
         public void handleKeyPress(KeyEvent e) {
             int key = e.getKeyCode();
@@ -198,6 +270,11 @@ public class Simulator extends JFrame {
         
 
         public void moveCar() {
+
+
+            sendNeuralNetworkInformation();
+
+
             // Update velocity based on acceleration
             carVelocity += carAcceleration;
         
@@ -236,9 +313,10 @@ public class Simulator extends JFrame {
                         carX -= Math.cos(angleInRadians);
                         carY -= Math.sin(angleInRadians);
                     }
-                    carVelocity = 0;
-                    carAcceleration = 0;
+
+                    // collision
                     System.out.println("Collision detected!");
+                    handleCollision();
 
                 }
             }
@@ -295,6 +373,8 @@ public class Simulator extends JFrame {
                     if (angleDifference <= angleThreshold) {
                         newSensorCollisionPoints.add(collisionPoint);
                     }
+                } else{
+                    newSensorCollisionPoints.add(null);
                 }
         
                 startSensorAngle += angleIncrement;
@@ -344,6 +424,71 @@ public class Simulator extends JFrame {
                     - 2 * (circleX * startX + circleY * startY) - radius * radius;
         
             return b * b - 4 * a * c >= 0;
+        }
+
+        private void sendNeuralNetworkInformation(){
+            // Update the neural network based on the total distance traveled
+            INDArray inputVector = generateInputVector.generateInputVector(sensorCollisionPoints, carVelocity, carAcceleration, neuralNetwork);
+            int outputAction = generateOutputVector.generateOutputVector(inputVector, neuralNetwork);
+
+            // Update information for predictive training
+            outputList.add(generateOutputVector.outputVector);
+            inputList.add(inputVector);
+            actionList.add(outputAction);
+            
+            // Update the neural network based on the output given
+            switch (outputAction) {
+                case 0:
+                    carAcceleration = accelerationRate;
+                    break;
+                case 1:
+                    carAcceleration = -accelerationRate;
+                    break;
+                case 2:
+                    if (carVelocity != 0) {
+
+                        // Adjust the turning rate based on the car's velocity
+                        double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
+                        carAngle -= adjustedTurnRate; 
+                    }
+                    break;
+                case 3:
+                    if (carVelocity != 0) {
+                        
+                        // Adjust the turning rate based on the car's velocity
+                        double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
+                        carAngle += adjustedTurnRate;
+                    }
+                    break;
+                case 4:
+                    if (carVelocity > 0.5) {
+                        carVelocity -= velocityDecayRate;
+                    } else if (carVelocity < -0.5) {
+                        carVelocity += velocityDecayRate;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+
+        }
+
+        private void handleCollision(){
+            // When a collision occurs, update the neural network based on the total distance traveled
+            neuralNetwork.updateNeuralNetwork(inputList, outputList, actionList, totalDistanceTraveled);
+
+            // Reset car position and total distance traveled
+            carX = trackWidth / 2.0;
+            carY = trackHeight / 2.0;
+            carVelocity = 0;
+            carAcceleration = 0;
+            carAngle = 0;
+            totalDistanceTraveled = 0;
+
+            // Update barriers and sensorCollisionPoints
+            initBarrier();
+            calculateSensorCollisionPoints();
         }
 
 
@@ -399,6 +544,8 @@ public class Simulator extends JFrame {
                 Point sensorCollisionPoint = sensorPointsCopy.get(i);
                 if (sensorCollisionPoint != null) {
                     g.drawString("Sensor " + (i + 1) + ": X: " + sensorCollisionPoint.x + " Y: " + sensorCollisionPoint.y, 1700, 40 + i * 25);
+                }else{
+                    g.drawString("Sensor " + (i + 1) + ": X: " + "null" + " Y: " + "null", 1700, 40 + i * 25);
                 }
             }
         }
