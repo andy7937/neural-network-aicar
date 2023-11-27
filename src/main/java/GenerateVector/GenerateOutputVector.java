@@ -8,6 +8,7 @@ import neuralNetwork.NeuralNetwork;
 public class GenerateOutputVector {
 
     public static int numOutputs;
+    public static int numInputs;
     public INDArray outputVector;
 
     public int generateOutputVector(INDArray input, NeuralNetwork neuralNetwork) {
@@ -19,7 +20,7 @@ public class GenerateOutputVector {
         // 4. space (stop)
 
         // Initialize the output vector with zeros
-        INDArray output = Nd4j.zeros(1, numOutputs);
+        INDArray output = Nd4j.zeros(1, numInputs);
 
         // Get the neural network's predictions
         INDArray predictions = neuralNetwork.predict(output);/* Call your neural network's predict method with the input */;

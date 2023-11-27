@@ -45,15 +45,12 @@ public class Simulator extends JFrame {
     private BufferedImage offScreenBuffer;
     private Point firstClick;
     public double totalDistanceTraveled = 0;
-    public int numInputs = 16;
-    public int numHiddenNeurons = 11;
-    public int numOutputs = 5;
+    private int numInputs = 16;
+    private int numHiddenNeurons = 10;
+    private int numOutputs = 5;
     private List<INDArray> outputList = new ArrayList<>();
     private List<INDArray> inputList = new ArrayList<>();
     private List<Integer> actionList = new ArrayList<>();
-
-
-
 
     public Simulator() {
         setTitle("Car Racing Game");
@@ -65,6 +62,7 @@ public class Simulator extends JFrame {
         NeuralNetwork neuralNetwork = new NeuralNetwork(numInputs, numHiddenNeurons, numOutputs);
         GenerateInputVector.numInputs = numInputs;
         GenerateOutputVector.numOutputs = numOutputs;
+        GenerateOutputVector.numInputs = numInputs;
 
         sensorCollisionPoints = new ArrayList<>();
         offScreenBuffer = new BufferedImage(trackWidth, trackHeight, BufferedImage.TYPE_INT_ARGB);
@@ -374,7 +372,7 @@ public class Simulator extends JFrame {
                         newSensorCollisionPoints.add(collisionPoint);
                     }
                 } else{
-                    newSensorCollisionPoints.add(null);
+                    newSensorCollisionPoints.add(new Point(-1, -1));
                 }
         
                 startSensorAngle += angleIncrement;
@@ -435,7 +433,7 @@ public class Simulator extends JFrame {
             outputList.add(generateOutputVector.outputVector);
             inputList.add(inputVector);
             actionList.add(outputAction);
-            
+
             // Update the neural network based on the output given
             switch (outputAction) {
                 case 0:
@@ -486,9 +484,10 @@ public class Simulator extends JFrame {
             carAngle = 0;
             totalDistanceTraveled = 0;
 
+            new SimulatorPanel(neuralNetwork);
+
             // Update barriers and sensorCollisionPoints
-            initBarrier();
-            calculateSensorCollisionPoints();
+
         }
 
 
@@ -525,7 +524,7 @@ public class Simulator extends JFrame {
         
             synchronized (sensorCollisionPoints) {
                 for (Point sensorCollisionPoint : sensorCollisionPoints) {
-                    if (sensorCollisionPoint != null) {
+                    if (sensorCollisionPoint.x != -1 && sensorCollisionPoint.y != -1) {
                         g.drawLine((int) carX + carWidth / 2, (int) carY + carHeight / 2,
                                 sensorCollisionPoint.x, sensorCollisionPoint.y);
                     }
