@@ -45,11 +45,13 @@ public class Simulator extends JFrame {
     private volatile List<Point> sensorCollisionPoints = new CopyOnWriteArrayList<>();
     private BufferedImage offScreenBuffer;
     private Point firstClick;
-    public double totalDistanceTraveled = 0;
     private int numInputs = 16;
     private int numHiddenNeurons = 10;
     private int numOutputs = 4;
     private int stepsInSameSpot = 0;
+    private double reward = 0;
+    private int foodX = 0;
+    private int foodY = 0;
     private List<INDArray> outputList = new ArrayList<>();
     private List<INDArray> inputList = new ArrayList<>();
     private List<Integer> actionList = new ArrayList<>();
@@ -76,6 +78,7 @@ public class Simulator extends JFrame {
         initializeRaceCourse();
 
         SimulatorPanel panel = new SimulatorPanel(neuralNetwork);
+        panel.createNewFood();
         add(panel);
 
         addKeyListener(new KeyListener() {
@@ -154,26 +157,6 @@ public class Simulator extends JFrame {
         raceCourse.add( createWall(new Point(1820, 980), new Point(1820, 100)));
         raceCourse.add( createWall(new Point(1820, 100), new Point(100, 100)));
 
-        // create inner walls
-        raceCourse.add(createWall(new Point(300, 300), new Point(500, 300)));
-        raceCourse.add(createWall(new Point(500, 300), new Point(500, 500)));
-        raceCourse.add(createWall(new Point(500, 500), new Point(300, 500)));
-        raceCourse.add(createWall(new Point(300, 500), new Point(300, 300)));
-
-        raceCourse.add(createWall(new Point(1400, 300), new Point(1600, 300)));
-        raceCourse.add(createWall(new Point(1600, 300), new Point(1600, 500)));
-        raceCourse.add(createWall(new Point(1600, 500), new Point(1400, 500)));
-        raceCourse.add(createWall(new Point(1400, 500), new Point(1400, 300)));
-
-        raceCourse.add(createWall(new Point(700, 200), new Point(900, 200)));
-        raceCourse.add(createWall(new Point(900, 200), new Point(900, 400)));
-        raceCourse.add(createWall(new Point(900, 400), new Point(700, 400)));
-        raceCourse.add(createWall(new Point(700, 400), new Point(700, 200)));
-
-        raceCourse.add(createWall(new Point(1200, 700), new Point(1400, 700)));
-        raceCourse.add(createWall(new Point(1400, 700), new Point(1400, 900)));
-        raceCourse.add(createWall(new Point(1400, 900), new Point(1200, 900)));
-        raceCourse.add(createWall(new Point(1200, 900), new Point(1200, 700)));
 
         // Initialize the barriers list
         barriers = new ArrayList<>(); 
@@ -226,15 +209,18 @@ public class Simulator extends JFrame {
             switch (key) {
                 case KeyEvent.VK_W:
                     carAcceleration = accelerationRate;
+                    rewardCarGettingCloserToFood(0);
                     break;
                 case KeyEvent.VK_S:
                     carAcceleration = -accelerationRate;
+                    rewardCarGettingCloserToFood(1);
                     break;
                 case KeyEvent.VK_A:
                     if (carVelocity != 0) {
                         // Adjust the turning rate based on the car's velocity
                         double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
                         carAngle -= adjustedTurnRate; 
+                        rewardCarGettingCloserToFood(2);
                     }
                     break;
                 case KeyEvent.VK_D:
@@ -242,6 +228,7 @@ public class Simulator extends JFrame {
                         // Adjust the turning rate based on the car's velocity
                         double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
                         carAngle += adjustedTurnRate;
+                        rewardCarGettingCloserToFood(3);
                     }
                     break;
                 case KeyEvent.VK_SPACE:
@@ -272,8 +259,7 @@ public class Simulator extends JFrame {
         public void moveCar() {
 
 
-            sendNeuralNetworkInformation();
-            totalDistanceTraveled++;
+            // sendNeuralNetworkInformation();
 
 
             // Update velocity based on acceleration
@@ -341,9 +327,16 @@ public class Simulator extends JFrame {
             }
 
 
+            // if car is in area of food, move food
+
+            if (carX > foodX - 10 && carX < foodX + 10 && carY > foodY - 10 && carY < foodY + 10){
+                createNewFood();
+                reward += 100;
+            }
+
+
             if (carVelocity == 0){
                 stepsInSameSpot++;
-                totalDistanceTraveled = totalDistanceTraveled - 2;
             }
             else{
                 stepsInSameSpot = 0;
@@ -354,6 +347,12 @@ public class Simulator extends JFrame {
             }
     
             repaint(); 
+        }
+
+        private void createNewFood(){
+                Random random = new Random();
+                foodX = random.nextInt(0, 1820);
+                foodY = random.nextInt(0, 980);
         }
 
         private void calculateSensorCollisionPoints() {
@@ -449,7 +448,7 @@ public class Simulator extends JFrame {
             inputList.add(inputVector);
             actionList.add(outputAction);
             double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
-            System.out.println(outputAction);
+            rewardCarGettingCloserToFood(outputAction);
 
             // Update the neural network based on the output given
             switch (outputAction) {
@@ -460,10 +459,10 @@ public class Simulator extends JFrame {
                     carAcceleration = -accelerationRate;
                     break;
                 case 2:
-                        carAngle -= adjustedTurnRate; 
+                    carAngle -= adjustedTurnRate; 
                     break;
                 case 3:
-                        carAngle += adjustedTurnRate;
+                    carAngle += adjustedTurnRate;
                     break;
                 case 4:
                         randomaction();
@@ -486,19 +485,15 @@ public class Simulator extends JFrame {
                         switch (outputAction) {
                 case 0:
                     carAcceleration = accelerationRate;
-                    totalDistanceTraveled++;
                     break;
                 case 1:
                     carAcceleration = -accelerationRate;
-                    totalDistanceTraveled++;
                     break;
                 case 2:
                         carAngle -= adjustedTurnRate; 
-                        totalDistanceTraveled = totalDistanceTraveled + 2;
                     break;
                 case 3:
                         carAngle += adjustedTurnRate;
-                        totalDistanceTraveled = totalDistanceTraveled + 2;
                     break;
                 default:
                     break;
@@ -507,16 +502,18 @@ public class Simulator extends JFrame {
 
         private void handleCollision(){
             // When a collision occurs, update the neural network based on the total distance traveled
-            neuralNetwork.updateNeuralNetwork(inputList, outputList, actionList, totalDistanceTraveled);
-              System.out.println("Collision detected!");
+            neuralNetwork.updateNeuralNetwork(inputList, outputList, actionList, reward);
+            System.out.println("Collision detected!");
+            reward -= 100;
 
+            createNewFood();
             // Reset car position and total distance traveled
             carX = trackWidth / 2.0;
             carY = trackHeight / 2.0;
             carVelocity = 0;
             carAcceleration = 0;
             carAngle = 0;
-            totalDistanceTraveled = 0;
+            reward = 0;
 
             new SimulatorPanel(neuralNetwork);
 
@@ -524,6 +521,39 @@ public class Simulator extends JFrame {
 
         }
 
+        private void rewardCarGettingCloserToFood(int action) {
+            double initialDistance = calculateDistance(carX, carY, foodX, foodY);
+            double actionDistance = 0;
+        
+            if (action == 0) {
+                actionDistance = calculateDistance(carX + carVelocity * Math.cos(Math.toRadians(carAngle)),
+                        carY + carVelocity * Math.sin(Math.toRadians(carAngle)), foodX, foodY);
+            } else if (action == 1) {
+                actionDistance = calculateDistance(carX + carVelocity * Math.cos(Math.toRadians(carAngle)),
+                        carY + carVelocity * Math.sin(Math.toRadians(carAngle)), foodX, foodY);
+            } else if (action == 2) {
+                // if car is turning left, check if turning left will make it closer to food
+                actionDistance = calculateDistance(carX + carVelocity * Math.cos(Math.toRadians(carAngle - 10)),
+                        carY + carVelocity * Math.sin(Math.toRadians(carAngle - 10)), foodX, foodY);
+
+
+            } else if (action == 3) {
+                // if car is turning right, check if turning right will make it closer to food
+                actionDistance = calculateDistance(carX + carVelocity * Math.cos(Math.toRadians(carAngle + 10)),
+                        carY + carVelocity * Math.sin(Math.toRadians(carAngle + 10)), foodX, foodY);
+            }
+        
+            if (actionDistance < initialDistance) {
+                reward += 1;
+            } else {
+                reward -= 1;
+            }
+        }
+
+        // Method to calculate the distance between two points
+        private double calculateDistance(double x1, double y1, double x2, double y2) {
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        }
 
         @Override
         protected void paintComponent(Graphics g) {
@@ -537,6 +567,8 @@ public class Simulator extends JFrame {
             drawCar(offScreenGraphics);
             drawSpedometer(offScreenGraphics);
             drawSensorPos(offScreenGraphics);
+            drawFood(offScreenGraphics);
+            drawRewardCounter(offScreenGraphics);
 
             g.drawImage(offScreenBuffer, 0, 0, this);
         }
@@ -566,6 +598,12 @@ public class Simulator extends JFrame {
             }
         }
 
+        private void drawRewardCounter(Graphics g) {
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("TimesRoman", Font.PLAIN, 20));
+            g.drawString("Reward: " + reward, 10, 40);
+        }
+
         private void drawSensorPos(Graphics g) {
             g.setColor(Color.WHITE);
             g.setFont(new Font("TimesRoman", Font.PLAIN, 20));
@@ -581,6 +619,11 @@ public class Simulator extends JFrame {
                     g.drawString("Sensor " + (i + 1) + ": X: " + "null" + " Y: " + "null", 1700, 40 + i * 25);
                 }
             }
+        }
+
+        private void drawFood(Graphics g) {
+            g.setColor(Color.GREEN);
+            g.fillRect(foodX, foodY, 10, 10);
         }
 
         private void drawSpedometer(Graphics g) {
