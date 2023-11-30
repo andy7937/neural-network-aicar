@@ -13,11 +13,9 @@ public class GenerateOutputVector {
 
     public int generateOutputVector(INDArray input, NeuralNetwork neuralNetwork) {
         // Assuming the neural network has 4 outputs:
-        // 0. W (move forward)
         // 1. A (turn left)
-        // 2. S (move backward)
         // 3. D (turn right)
-        // 4. Random 
+
 
         // Get the neural network's predictions
         INDArray predictions = neuralNetwork.predict(input);

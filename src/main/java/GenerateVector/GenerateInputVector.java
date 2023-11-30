@@ -30,8 +30,7 @@ public class GenerateInputVector {
         // 11. sensor 6 y
         // 12. sensor 7 x
         // 13. sensor 7 y
-        // 14. car velocity
-        // 15. car acceleration
+
 
 
     // Initialize the input vector with zeros
@@ -55,11 +54,8 @@ public class GenerateInputVector {
 
     }
 
-    // Set the car velocity and acceleration
-    inputVector.putScalar(14, normalize(carVelocity, 0 , 80));
-    inputVector.putScalar(15, normalize(carAcceleration, 0, 80));
 
-        return inputVector;
+    return inputVector;
 
     }
 

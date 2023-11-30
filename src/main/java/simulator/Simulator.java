@@ -3,7 +3,6 @@ package simulator;
 import javax.swing.*;
 
 import org.nd4j.linalg.api.ndarray.INDArray;
-
 import GenerateVector.GenerateInputVector;
 import GenerateVector.GenerateOutputVector;
 import neuralNetwork.NeuralNetwork;
@@ -45,16 +44,18 @@ public class Simulator extends JFrame {
     private volatile List<Point> sensorCollisionPoints = new CopyOnWriteArrayList<>();
     private BufferedImage offScreenBuffer;
     private Point firstClick;
-    private int numInputs = 16;
-    private int numHiddenNeurons = 10;
-    private int numOutputs = 4;
-    private int stepsInSameSpot = 0;
-    private double reward = 0;
-    private int foodX = 0;
-    private int foodY = 0;
+    private int numInputs = 14;
+    private int numHiddenNeurons = 8;
+    private int numOutputs = 2;
     private List<INDArray> outputList = new ArrayList<>();
     private List<INDArray> inputList = new ArrayList<>();
     private List<Integer> actionList = new ArrayList<>();
+    private int reward = 0;
+    private List<Point> pointsCreated = new ArrayList<>();
+    private List<Car> cars = new ArrayList<>();
+    private int numOfCars = 1;
+    Random random = new Random();
+    
 
     public Simulator() {
         setTitle("Car Racing Game");
@@ -62,23 +63,31 @@ public class Simulator extends JFrame {
         setResizable(true);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+
         // Initialize the neural networks
+        carX = 160;
+        carY = 123;
+        carAngle = 90;
         NeuralNetwork neuralNetwork = new NeuralNetwork(numInputs, numHiddenNeurons, numOutputs);
+
+        for (int i = 0; i < numOfCars; i++){
+            neuralNetwork = new NeuralNetwork(numInputs, numHiddenNeurons, numOutputs);
+            Car car = new Car(carX, carY, carAngle);
+            car.neuralNetwork = neuralNetwork;
+            cars.add(car);
+
+        }
         GenerateInputVector.numInputs = numInputs;
         GenerateOutputVector.numOutputs = numOutputs;
         GenerateOutputVector.numInputs = numInputs;
 
-        sensorCollisionPoints = new ArrayList<>();
+
         offScreenBuffer = new BufferedImage(trackWidth, trackHeight, BufferedImage.TYPE_INT_ARGB);
 
-        carX = trackWidth / 2.0;
-        carY = trackHeight / 2.0;
 
-        // Initialize white spots
         initializeRaceCourse();
 
-        SimulatorPanel panel = new SimulatorPanel(neuralNetwork);
-        panel.createNewFood();
+        SimulatorPanel panel = new SimulatorPanel();
         add(panel);
 
         addKeyListener(new KeyListener() {
@@ -105,10 +114,12 @@ public class Simulator extends JFrame {
                 if (firstClick == null) {
                     // First click
                     firstClick = new Point(mouseX, mouseY);
+                    pointsCreated.add(firstClick);
                 } else {
                     // Second click
                     Point secondClick = new Point(mouseX, mouseY);
                     raceCourse.add(createWall(firstClick, secondClick));
+                    pointsCreated.add(secondClick);
 
                     // Reset firstClick for the next wall
                     firstClick = null;
@@ -116,6 +127,17 @@ public class Simulator extends JFrame {
                 }
             }
         });
+
+        // code for running once window is closed for debugging
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                for (Point points : pointsCreated){
+                    System.out.println(points.x + " " + points.y);
+                }
+            }
+        });
+
 
         setFocusable(true);
 
@@ -133,7 +155,9 @@ public class Simulator extends JFrame {
             @Override
             public void run() {
                 while (true) {
-                    panel.calculateSensorCollisionPoints();
+                    for (Car car : cars){
+                        panel.calculateSensorCollisionPoints(car);
+                    }
                     try {
                         Thread.sleep(10); // Adjust the sleep duration as needed
                     } catch (InterruptedException e) {
@@ -151,11 +175,61 @@ public class Simulator extends JFrame {
 
         raceCourse = new ArrayList<>(); // Initialize the raceCourse list
 
-        // create outer walls
-        raceCourse.add(createWall(new Point(100, 100), new Point(100, 980)));
-        raceCourse.add(createWall(new Point(100, 980), new Point(1820, 980)));
-        raceCourse.add( createWall(new Point(1820, 980), new Point(1820, 100)));
-        raceCourse.add( createWall(new Point(1820, 100), new Point(100, 100)));
+        raceCourse.add(createWall(new Point(34, 69), new Point(37, 558)));
+        raceCourse.add(createWall(new Point(37, 558), new Point(129, 813)));
+        raceCourse.add(createWall(new Point(129, 813), new Point(129, 814)));
+        raceCourse.add(createWall(new Point(129, 814), new Point(288, 922)));
+        raceCourse.add(createWall(new Point(288, 922), new Point(299, 927)));
+        raceCourse.add(createWall(new Point(299, 927), new Point(627, 947)));
+        raceCourse.add(createWall(new Point(627, 947), new Point(665, 812)));
+        raceCourse.add(createWall(new Point(665, 812), new Point(651, 524)));
+        raceCourse.add(createWall(new Point(651, 524), new Point(742, 385)));
+        raceCourse.add(createWall(new Point(742, 385), new Point(765, 387)));
+        raceCourse.add(createWall(new Point(765, 387), new Point(937, 385)));
+        raceCourse.add(createWall(new Point(937, 385), new Point(1023, 474)));
+        raceCourse.add(createWall(new Point(1023, 474), new Point(942, 404)));
+        raceCourse.add(createWall(new Point(942, 404), new Point(1037, 488)));
+        raceCourse.add(createWall(new Point(1037, 488), new Point(1041, 698)));
+        raceCourse.add(createWall(new Point(1041, 698), new Point(1056, 711)));
+        raceCourse.add(createWall(new Point(1056, 711), new Point(1076, 907)));
+        raceCourse.add(createWall(new Point(1076, 907), new Point(1090, 924)));
+        raceCourse.add(createWall(new Point(1090, 924), new Point(1329, 944)));
+        raceCourse.add(createWall(new Point(1329, 944), new Point(1352, 954)));
+        raceCourse.add(createWall(new Point(1352, 954), new Point(1608, 952)));
+        raceCourse.add(createWall(new Point(1608, 952), new Point(1618, 967)));
+        raceCourse.add(createWall(new Point(1618, 967), new Point(1800, 969)));
+        raceCourse.add(createWall(new Point(1800, 969), new Point(1805, 975)));
+        raceCourse.add(createWall(new Point(1805, 975), new Point(1794, 123)));
+        raceCourse.add(createWall(new Point(1794, 123), new Point(259, 88)));
+        raceCourse.add(createWall(new Point(259, 88), new Point(272, 280)));
+        raceCourse.add(createWall(new Point(272, 280), new Point(284, 298)));
+        raceCourse.add(createWall(new Point(284, 298), new Point(304, 429)));
+        raceCourse.add(createWall(new Point(304, 429), new Point(306, 436)));
+        raceCourse.add(createWall(new Point(306, 436), new Point(367, 578)));
+        raceCourse.add(createWall(new Point(367, 578), new Point(454, 574)));
+        raceCourse.add(createWall(new Point(454, 574), new Point(517, 600)));
+        raceCourse.add(createWall(new Point(517, 600), new Point(455, 583)));
+        raceCourse.add(createWall(new Point(455, 583), new Point(375, 606)));
+        raceCourse.add(createWall(new Point(375, 606), new Point(521, 315)));
+        raceCourse.add(createWall(new Point(521, 315), new Point(523, 613)));
+        raceCourse.add(createWall(new Point(523, 613), new Point(527, 340)));
+        raceCourse.add(createWall(new Point(527, 340), new Point(707, 227)));
+        raceCourse.add(createWall(new Point(707, 227), new Point(713, 244)));
+        raceCourse.add(createWall(new Point(713, 244), new Point(1004, 224)));
+        raceCourse.add(createWall(new Point(1004, 224), new Point(1013, 234)));
+        raceCourse.add(createWall(new Point(1013, 234), new Point(1174, 281)));
+        raceCourse.add(createWall(new Point(1174, 281), new Point(1176, 290)));
+        raceCourse.add(createWall(new Point(1176, 290), new Point(1324, 468)));
+        raceCourse.add(createWall(new Point(1324, 468), new Point(1325, 488)));
+        raceCourse.add(createWall(new Point(1325, 488), new Point(1291, 668)));
+        raceCourse.add(createWall(new Point(1291, 668), new Point(1300, 694)));
+        raceCourse.add(createWall(new Point(1300, 694), new Point(1375, 837)));
+        raceCourse.add(createWall(new Point(1375, 837), new Point(1673, 863)));
+        raceCourse.add(createWall(new Point(1673, 863), new Point(1381, 861)));
+        raceCourse.add(createWall(new Point(1381, 861), new Point(1665, 872)));
+        raceCourse.add(createWall(new Point(1665, 872), new Point(1651, 136)));
+        
+
 
 
         // Initialize the barriers list
@@ -191,16 +265,8 @@ public class Simulator extends JFrame {
 
     public class SimulatorPanel extends JPanel {
 
-        private NeuralNetwork neuralNetwork;
-        private GenerateInputVector generateInputVector;
-        private GenerateOutputVector generateOutputVector;
-
-        public SimulatorPanel(NeuralNetwork neuralNetwork) {
-            this.neuralNetwork = neuralNetwork;
-            this.generateInputVector = new GenerateInputVector();
-            this.generateOutputVector = new GenerateOutputVector();
-        }
-
+        private GenerateInputVector generateInputVector = new GenerateInputVector();
+        private GenerateOutputVector generateOutputVector = new GenerateOutputVector();
 
         public void handleKeyPress(KeyEvent e) {
             int key = e.getKeyCode();
@@ -209,18 +275,15 @@ public class Simulator extends JFrame {
             switch (key) {
                 case KeyEvent.VK_W:
                     carAcceleration = accelerationRate;
-                    rewardCarGettingCloserToFood(0);
                     break;
                 case KeyEvent.VK_S:
                     carAcceleration = -accelerationRate;
-                    rewardCarGettingCloserToFood(1);
                     break;
                 case KeyEvent.VK_A:
                     if (carVelocity != 0) {
                         // Adjust the turning rate based on the car's velocity
                         double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
                         carAngle -= adjustedTurnRate; 
-                        rewardCarGettingCloserToFood(2);
                     }
                     break;
                 case KeyEvent.VK_D:
@@ -228,7 +291,6 @@ public class Simulator extends JFrame {
                         // Adjust the turning rate based on the car's velocity
                         double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
                         carAngle += adjustedTurnRate;
-                        rewardCarGettingCloserToFood(3);
                     }
                     break;
                 case KeyEvent.VK_SPACE:
@@ -258,120 +320,88 @@ public class Simulator extends JFrame {
 
         public void moveCar() {
 
+            for (Car car: cars){
+                sendNeuralNetworkInformation(car);
 
-            // sendNeuralNetworkInformation();
+                car.velocity += car.acceleration;
+
+                // Apply friction to simulate deceleration
+                if (car.acceleration == 0) {
+                    if (car.velocity > 0) {
+                        car.velocity -= friction;
+                    } else if (car.velocity < 0) {
+                        car.velocity += friction;
+                    }
+                }
+
+                if (car.velocity < 0.05 && car.velocity > -0.05){
+                    car.velocity = 0;
+                }
+
+                // Limit velocity to maxVelocity
+                car.velocity = Math.min(maxVelocity, Math.max(-maxVelocity, car.velocity));
+
+                            // Update position based on velocity and angle
+                double angleInRadians = Math.toRadians(car.angle);
+                car.x += car.velocity * Math.cos(angleInRadians);
+                car.y += car.velocity * Math.sin(angleInRadians);
+
+            
+                for (Point barrier : barriers) {
+                    int barrierRadius = 5; // You can adjust this value based on your needs
+                
+                    if (Math.abs(car.x - barrier.x) <= barrierRadius && Math.abs(car.y - barrier.y) <= barrierRadius) {
+
+                        if (car.velocity > 0){
+                            car.x += Math.cos(angleInRadians);
+                            car.y += Math.sin(angleInRadians);
+                        }
+                        else if (car.velocity < 0){
+                            car.x -= Math.cos(angleInRadians);
+                            car.y -= Math.sin(angleInRadians);
+                        }
+                        // collision
+                        handleCollision(car);
+
+                        // If the car goes off the screen
+                        if (car.x < 0) {
+                            handleCollision(car);
+                        } else if (car.x > trackWidth - carWidth) {
+                            handleCollision(car);
+                        }
+                
+                        if (car.y < 0) {
+                            handleCollision(car);
+                        } else if (car.y > trackHeight - carHeight) {
+                            handleCollision(car);
+                        }
 
 
-            // Update velocity based on acceleration
-            carVelocity += carAcceleration;
-        
-            // Apply friction to simulate deceleration
-            if (carAcceleration == 0) {
-                if (carVelocity > 0) {
-                    carVelocity -= friction;
-                } else if (carVelocity < 0) {
-                    carVelocity += friction;
+                    }
                 }
             }
-
-            if (carVelocity < 0.05 && carVelocity > -0.05){
-                carVelocity = 0;
-            }
-
-            // Limit velocity to maxVelocity
-            carVelocity = Math.min(maxVelocity, Math.max(-maxVelocity, carVelocity));
-        
-            // Update position based on velocity and angle
-            double angleInRadians = Math.toRadians(carAngle);
-            carX += carVelocity * Math.cos(angleInRadians);
-            carY += carVelocity * Math.sin(angleInRadians);
-
-        
-            for (Point barrier : barriers) {
-                int barrierRadius = 5; // You can adjust this value based on your needs
             
-                if (Math.abs(carX - barrier.x) <= barrierRadius && Math.abs(carY - barrier.y) <= barrierRadius) {
-
-                    if (carVelocity > 0){
-                        carX += Math.cos(angleInRadians);
-                        carY += Math.sin(angleInRadians);
-                    }
-                    else if (carVelocity < 0){
-                        carX -= Math.cos(angleInRadians);
-                        carY -= Math.sin(angleInRadians);
-                    }
-
-                    // collision
-                    handleCollision();
-
-                }
-            }
-
-            
-
-            // If the car goes off the screen
-            if (carX < 0) {
-                carVelocity = 0;
-                carX = 0;
-            } else if (carX > trackWidth - carWidth) {
-                carVelocity = 0;
-                carX = trackWidth - carWidth;
-            }
-            
-            if (carY < 0) {
-                carVelocity = 0;
-                carY = 0;
-            } else if (carY > trackHeight - carHeight) {
-                carVelocity = 0;
-                carY = trackHeight - carHeight;
-            }
-
-
-            // if car is in area of food, move food
-
-            if (carX > foodX - 10 && carX < foodX + 10 && carY > foodY - 10 && carY < foodY + 10){
-                createNewFood();
-                reward += 100;
-            }
-
-
-            if (carVelocity == 0){
-                stepsInSameSpot++;
-            }
-            else{
-                stepsInSameSpot = 0;
-            }
-
-            if (stepsInSameSpot > 100){
-                handleCollision();
-            }
-    
             repaint(); 
         }
 
-        private void createNewFood(){
-                Random random = new Random();
-                foodX = random.nextInt(0, 1820);
-                foodY = random.nextInt(0, 980);
-        }
 
-        private void calculateSensorCollisionPoints() {
+        private void calculateSensorCollisionPoints(Car car) {
             List<Point> newSensorCollisionPoints = new ArrayList<>();
         
             int numSensors = 7; // Adjust the number of sensors as needed
-            double startSensorAngle = Math.toRadians(-45); // Start angle for the first sensor
-            double endSensorAngle = Math.toRadians(45); // End angle for the last sensor
+            double startSensorAngle = Math.toRadians(-car.angle - 45); // Start angle for the first sensor
+            double endSensorAngle = Math.toRadians(car.angle + 45); // End angle for the last sensor
             double angleIncrement = (endSensorAngle - startSensorAngle) / (numSensors - 1); // Angle increment between sensors
-            double angleInRadians = Math.toRadians(carAngle);
+            double angleInRadians = Math.toRadians(car.angle);
         
             for (int i = 0; i < numSensors; i++) {
-                double sensorX = carX + carWidth / 2.0;
-                double sensorY = carY + carHeight / 2.0;
+                double sensorX = car.x + carWidth / 2.0;
+                double sensorY = car.y + carHeight / 2.0;
         
                 double sensorEndX = sensorX + Math.cos(angleInRadians + startSensorAngle);
                 double sensorEndY = sensorY + Math.sin(angleInRadians + startSensorAngle);
-        
-                Point collisionPoint = calculateCollisionPoint(sensorX, sensorY, sensorEndX, sensorEndY);
+
+                Point collisionPoint = calculateCollisionPoint(sensorX, sensorY, sensorEndX, sensorEndY, car);
         
                 if (collisionPoint != null) {
                     // Check if the collision point is in front of the car
@@ -380,7 +410,7 @@ public class Simulator extends JFrame {
                             Math.cos(angleToCollisionPoint - angleInRadians)));
         
                     // Adjust this threshold to control the sensitivity of the sensors
-                    double angleThreshold = Math.toRadians(90);
+                    double angleThreshold = Math.toRadians(car.angle + 90);
         
                     if (angleDifference <= angleThreshold) {
                         newSensorCollisionPoints.add(collisionPoint);
@@ -391,23 +421,20 @@ public class Simulator extends JFrame {
         
                 startSensorAngle += angleIncrement;
             }
-        
-            synchronized (sensorCollisionPoints) {
-                sensorCollisionPoints.clear();
-                sensorCollisionPoints.addAll(newSensorCollisionPoints);
-            }
+
+            car.sensorCollisionPoint = newSensorCollisionPoints;
+    
         }
     
         
-        private Point calculateCollisionPoint(double startX, double startY, double endX, double endY) {
+        private Point calculateCollisionPoint(double startX, double startY, double endX, double endY, Car car) {
             Point closestCollisionPoint = null;
             double closestDistance = Double.MAX_VALUE;
         
             for (Point barrier : barriers) {
                 // Check if the barrier is in front of the car
                 double angleToBarrier = Math.atan2(barrier.y - startY, barrier.x - startX);
-                double angleDifference = Math.abs(Math.atan2(Math.sin(angleToBarrier - Math.toRadians(carAngle)),
-                        Math.cos(angleToBarrier - Math.toRadians(carAngle))));
+                double angleDifference = Math.abs(Math.atan2(Math.sin(angleToBarrier - Math.toRadians(car.angle)), Math.cos(angleToBarrier - Math.toRadians(car.angle))));
         
                 // Adjust this threshold to control the sensitivity of the sensors
                 double angleThreshold = Math.toRadians(90);
@@ -438,122 +465,53 @@ public class Simulator extends JFrame {
             return b * b - 4 * a * c >= 0;
         }
 
-        private void sendNeuralNetworkInformation(){
+        private void sendNeuralNetworkInformation(Car car){
             // Update the neural network based on the total distance traveled
-            INDArray inputVector = generateInputVector.generateInputVector(sensorCollisionPoints, carVelocity, carAcceleration, neuralNetwork);
-            int outputAction = generateOutputVector.generateOutputVector(inputVector, neuralNetwork);
+            INDArray inputVector = generateInputVector.generateInputVector(car.sensorCollisionPoint, car.velocity, car.acceleration, car.neuralNetwork);
+            int outputAction = generateOutputVector.generateOutputVector(inputVector, car.neuralNetwork);
 
             // Update information for predictive training
             outputList.add(generateOutputVector.outputVector);
             inputList.add(inputVector);
             actionList.add(outputAction);
-            double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
-            rewardCarGettingCloserToFood(outputAction);
+            double adjustedTurnRate = baseCarTurnRate * (Math.abs(car.velocity * 0.8) / maxVelocity);
+            reward++;
 
             // Update the neural network based on the output given
             switch (outputAction) {
                 case 0:
-                    carAcceleration = accelerationRate;
+                    car.angle -= adjustedTurnRate;                     
                     break;
                 case 1:
-                    carAcceleration = -accelerationRate;
-                    break;
-                case 2:
-                    carAngle -= adjustedTurnRate; 
-                    break;
-                case 3:
-                    carAngle += adjustedTurnRate;
-                    break;
-                case 4:
-                        randomaction();
+                    car.angle += adjustedTurnRate;                     
                     break;
                 default:
-                    break;
+                    break;    
             }
 
-
+            car.acceleration = accelerationRate;
         }
         
 
-        private void randomaction(){
+        private void handleCollision(Car car){
 
-            Random randomaction = new Random();
-            int outputAction = randomaction.nextInt(4);
-            double adjustedTurnRate = baseCarTurnRate * (Math.abs(carVelocity * 0.8) / maxVelocity);
-
-
-                        switch (outputAction) {
-                case 0:
-                    carAcceleration = accelerationRate;
-                    break;
-                case 1:
-                    carAcceleration = -accelerationRate;
-                    break;
-                case 2:
-                        carAngle -= adjustedTurnRate; 
-                    break;
-                case 3:
-                        carAngle += adjustedTurnRate;
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        private void handleCollision(){
             // When a collision occurs, update the neural network based on the total distance traveled
-            neuralNetwork.updateNeuralNetwork(inputList, outputList, actionList, reward);
+            car.neuralNetwork.updateNeuralNetwork(inputList, outputList, actionList);
             System.out.println("Collision detected!");
-            reward -= 100;
 
-            createNewFood();
+
             // Reset car position and total distance traveled
-            carX = trackWidth / 2.0;
-            carY = trackHeight / 2.0;
-            carVelocity = 0;
-            carAcceleration = 0;
-            carAngle = 0;
-            reward = 0;
-
-            new SimulatorPanel(neuralNetwork);
+            car.x = 160;
+            car.y = 123;
+            car.angle = 90;
+            car.velocity = 0;
+            car.acceleration = 0;
+            car.reward = 0;
 
             // Update barriers and sensorCollisionPoints
 
         }
 
-        private void rewardCarGettingCloserToFood(int action) {
-            double initialDistance = calculateDistance(carX, carY, foodX, foodY);
-            double actionDistance = 0;
-        
-            if (action == 0) {
-                actionDistance = calculateDistance(carX + carVelocity * Math.cos(Math.toRadians(carAngle)),
-                        carY + carVelocity * Math.sin(Math.toRadians(carAngle)), foodX, foodY);
-            } else if (action == 1) {
-                actionDistance = calculateDistance(carX + carVelocity * Math.cos(Math.toRadians(carAngle)),
-                        carY + carVelocity * Math.sin(Math.toRadians(carAngle)), foodX, foodY);
-            } else if (action == 2) {
-                // if car is turning left, check if turning left will make it closer to food
-                actionDistance = calculateDistance(carX + carVelocity * Math.cos(Math.toRadians(carAngle - 10)),
-                        carY + carVelocity * Math.sin(Math.toRadians(carAngle - 10)), foodX, foodY);
-
-
-            } else if (action == 3) {
-                // if car is turning right, check if turning right will make it closer to food
-                actionDistance = calculateDistance(carX + carVelocity * Math.cos(Math.toRadians(carAngle + 10)),
-                        carY + carVelocity * Math.sin(Math.toRadians(carAngle + 10)), foodX, foodY);
-            }
-        
-            if (actionDistance < initialDistance) {
-                reward += 1;
-            } else {
-                reward -= 1;
-            }
-        }
-
-        // Method to calculate the distance between two points
-        private double calculateDistance(double x1, double y1, double x2, double y2) {
-            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-        }
 
         @Override
         protected void paintComponent(Graphics g) {
@@ -563,13 +521,12 @@ public class Simulator extends JFrame {
             offScreenGraphics.clearRect(0, 0, trackWidth, trackHeight);
 
             drawTrack(offScreenGraphics);
-            drawSensorLines(offScreenGraphics);
-            drawCar(offScreenGraphics);
-            drawSpedometer(offScreenGraphics);
-            drawSensorPos(offScreenGraphics);
-            drawFood(offScreenGraphics);
-            drawRewardCounter(offScreenGraphics);
 
+            for (Car car : cars){
+                drawCar(offScreenGraphics, car);
+                drawSensorLines(offScreenGraphics, car);          
+            }
+            
             g.drawImage(offScreenBuffer, 0, 0, this);
         }
 
@@ -585,86 +542,52 @@ public class Simulator extends JFrame {
             } 
         }
 
-        private void drawSensorLines(Graphics g) {
+        private void drawSensorLines(Graphics g, Car car) {
+            List<Point> currentSensorCollisionPoints;  // Store the current sensorCollisionPoints
+
+
+            currentSensorCollisionPoints = car.sensorCollisionPoint;
+
             g.setColor(Color.YELLOW);
-        
-            synchronized (sensorCollisionPoints) {
-                for (Point sensorCollisionPoint : sensorCollisionPoints) {
-                    if (sensorCollisionPoint.x != -1 && sensorCollisionPoint.y != -1) {
-                        g.drawLine((int) carX + carWidth / 2, (int) carY + carHeight / 2,
-                                sensorCollisionPoint.x, sensorCollisionPoint.y);
-                    }
+
+            for (Point sensorCollisionPoint : currentSensorCollisionPoints) {
+                if (sensorCollisionPoint.x != -1 && sensorCollisionPoint.y != -1) {
+                    g.drawLine((int) car.x + carWidth / 2, (int) car.y + carHeight / 2,
+                            sensorCollisionPoint.x, sensorCollisionPoint.y);
                 }
             }
         }
 
-        private void drawRewardCounter(Graphics g) {
-            g.setColor(Color.WHITE);
-            g.setFont(new Font("TimesRoman", Font.PLAIN, 20));
-            g.drawString("Reward: " + reward, 10, 40);
-        }
-
-        private void drawSensorPos(Graphics g) {
-            g.setColor(Color.WHITE);
-            g.setFont(new Font("TimesRoman", Font.PLAIN, 20));
-        
-            // Create a copy of sensorCollisionPoints to avoid ConcurrentModificationException
-            List<Point> sensorPointsCopy = new ArrayList<>(sensorCollisionPoints);
-        
-            for (int i = 0; i < sensorPointsCopy.size(); i++) {
-                Point sensorCollisionPoint = sensorPointsCopy.get(i);
-                if (sensorCollisionPoint != null) {
-                    g.drawString("Sensor " + (i + 1) + ": X: " + sensorCollisionPoint.x + " Y: " + sensorCollisionPoint.y, 1700, 40 + i * 25);
-                }else{
-                    g.drawString("Sensor " + (i + 1) + ": X: " + "null" + " Y: " + "null", 1700, 40 + i * 25);
-                }
-            }
-        }
-
-        private void drawFood(Graphics g) {
-            g.setColor(Color.GREEN);
-            g.fillRect(foodX, foodY, 10, 10);
-        }
-
-        private void drawSpedometer(Graphics g) {
-            g.setColor(Color.WHITE);
-            g.setFont(new Font("TimesRoman", Font.PLAIN, 20));
-            String formattedVelocity = String.format("%.1f", carVelocity * 10);
-            g.drawString("Speed: " +  formattedVelocity + " KM/H", 10, 20);
-        }
-
-        private void drawCar(Graphics g) {
+        private void drawCar(Graphics g, Car car) {
             Graphics2D g2d = (Graphics2D) g;
             g2d.setColor(Color.RED);
         
             // Create an AffineTransform to rotate the car
             AffineTransform oldTransform = g2d.getTransform();
             AffineTransform newTransform = new AffineTransform();
-            newTransform.rotate(Math.toRadians(carAngle), carX + carWidth / 2.0, carY + carHeight / 2.0);
+            newTransform.rotate(Math.toRadians(car.angle), car.x + carWidth / 2.0, car.y + carHeight / 2.0);
             g2d.setTransform(newTransform);
         
             // Draw the rotated car
-            g2d.fillRect((int) carX, (int) carY, carWidth, carHeight);
+            g2d.fillRect((int) car.x, (int) car.y, carWidth, carHeight);
         
             // Draw headlights (white squares) on the front of the car
             g2d.setColor(Color.WHITE); // Headlight color
             int headlightSize = 5; // Headlight size
         
             // Left headlight
-            int leftHeadlightX = (int) (carX + carWidth - headlightSize);
-            int leftHeadlightY = (int) (carY);
+            int leftHeadlightX = (int) (car.x + carWidth - headlightSize);
+            int leftHeadlightY = (int) (car.y);
             g2d.fillRect(leftHeadlightX, leftHeadlightY, headlightSize, headlightSize);
         
             // Right headlight
-            int rightHeadlightX = (int) (carX + carWidth - headlightSize);
-            int rightHeadlightY = (int) (carY + carHeight - headlightSize);
+            int rightHeadlightX = (int) (car.x + carWidth - headlightSize);
+            int rightHeadlightY = (int) (car.y + carHeight - headlightSize);
             g2d.fillRect(rightHeadlightX, rightHeadlightY, headlightSize, headlightSize);
         
             // Reset the transform to the original state
             g2d.setTransform(oldTransform);
         }
-        
-        
     }
 
     public static void main(String[] args) {
