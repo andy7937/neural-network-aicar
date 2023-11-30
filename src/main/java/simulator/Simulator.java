@@ -53,7 +53,7 @@ public class Simulator extends JFrame {
     private int reward = 0;
     private List<Point> pointsCreated = new ArrayList<>();
     private List<Car> cars = new ArrayList<>();
-    private int numOfCars = 1;
+    private int numOfCars = 10;
     Random random = new Random();
     
 
@@ -389,8 +389,8 @@ public class Simulator extends JFrame {
             List<Point> newSensorCollisionPoints = new ArrayList<>();
         
             int numSensors = 7; // Adjust the number of sensors as needed
-            double startSensorAngle = Math.toRadians(-car.angle - 45); // Start angle for the first sensor
-            double endSensorAngle = Math.toRadians(car.angle + 45); // End angle for the last sensor
+            double startSensorAngle = Math.toRadians(-45); // Start angle for the first sensor
+            double endSensorAngle = Math.toRadians(45); // End angle for the last sensor
             double angleIncrement = (endSensorAngle - startSensorAngle) / (numSensors - 1); // Angle increment between sensors
             double angleInRadians = Math.toRadians(car.angle);
         
@@ -400,7 +400,7 @@ public class Simulator extends JFrame {
         
                 double sensorEndX = sensorX + Math.cos(angleInRadians + startSensorAngle);
                 double sensorEndY = sensorY + Math.sin(angleInRadians + startSensorAngle);
-
+        
                 Point collisionPoint = calculateCollisionPoint(sensorX, sensorY, sensorEndX, sensorEndY, car);
         
                 if (collisionPoint != null) {
@@ -410,7 +410,7 @@ public class Simulator extends JFrame {
                             Math.cos(angleToCollisionPoint - angleInRadians)));
         
                     // Adjust this threshold to control the sensitivity of the sensors
-                    double angleThreshold = Math.toRadians(car.angle + 90);
+                    double angleThreshold = Math.toRadians(90);
         
                     if (angleDifference <= angleThreshold) {
                         newSensorCollisionPoints.add(collisionPoint);
@@ -423,7 +423,6 @@ public class Simulator extends JFrame {
             }
 
             car.sensorCollisionPoint = newSensorCollisionPoints;
-    
         }
     
         
@@ -434,7 +433,8 @@ public class Simulator extends JFrame {
             for (Point barrier : barriers) {
                 // Check if the barrier is in front of the car
                 double angleToBarrier = Math.atan2(barrier.y - startY, barrier.x - startX);
-                double angleDifference = Math.abs(Math.atan2(Math.sin(angleToBarrier - Math.toRadians(car.angle)), Math.cos(angleToBarrier - Math.toRadians(car.angle))));
+                double angleDifference = Math.abs(Math.atan2(Math.sin(angleToBarrier - Math.toRadians(car.angle)),
+                        Math.cos(angleToBarrier - Math.toRadians(car.angle))));
         
                 // Adjust this threshold to control the sensitivity of the sensors
                 double angleThreshold = Math.toRadians(90);
