@@ -55,7 +55,7 @@ public class Simulator extends JFrame {
     private int iteration = 0;
     private int maxIterations = 500;
     private int generation = 0;
-    private int maxGenerations = 100;
+    private int maxGenerations = 1000;
 
 
 
@@ -518,7 +518,6 @@ public class Simulator extends JFrame {
             // Reset car position and total distance traveled
             car.velocity = 0;
             car.acceleration = 0;
-            // Update barriers and sensorCollisionPoints
         }
 
         private boolean isAllCarsDead(){
@@ -568,7 +567,7 @@ public class Simulator extends JFrame {
             List<Car> topCars = new ArrayList<>();
             Car topcar = null;
 
-            for (int i = 0; i <= 4; i++){
+            for (int i = 0; i < 4; i++){
                 topcar = carsCopy.get(0);
                 for (Car car : carsCopy){
                     if (car.reward > topcar.reward){
