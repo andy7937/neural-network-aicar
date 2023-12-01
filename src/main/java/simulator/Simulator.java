@@ -19,7 +19,6 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 
 public class Simulator extends JFrame {
@@ -41,7 +40,6 @@ public class Simulator extends JFrame {
 
     private List<Wall> raceCourse;
     private List<Point> barriers;
-    private volatile List<Point> sensorCollisionPoints = new CopyOnWriteArrayList<>();
     private BufferedImage offScreenBuffer;
     private Point firstClick;
     private int numInputs = 14;
@@ -54,6 +52,13 @@ public class Simulator extends JFrame {
     private List<Point> pointsCreated = new ArrayList<>();
     private List<Car> cars = new ArrayList<>();
     private int numOfCars = 10;
+    private int iteration = 0;
+    private int maxIterations = 1000;
+    private int generation = 0;
+    private int maxGenerations = 100;
+
+
+
     Random random = new Random();
     
 
@@ -145,8 +150,10 @@ public class Simulator extends JFrame {
         Timer timer = new Timer(delay, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                // if all cars are dead then stop the timer
                 panel.moveCar();
                 repaint();
+
             }
         });
 
@@ -228,6 +235,8 @@ public class Simulator extends JFrame {
         raceCourse.add(createWall(new Point(1673, 863), new Point(1381, 861)));
         raceCourse.add(createWall(new Point(1381, 861), new Point(1665, 872)));
         raceCourse.add(createWall(new Point(1665, 872), new Point(1651, 136)));
+        raceCourse.add(createWall(new Point(42, 82), new Point(270, 96)));
+
         
 
 
@@ -320,66 +329,68 @@ public class Simulator extends JFrame {
 
         public void moveCar() {
 
+            increaseIteration();
+
             for (Car car: cars){
-                sendNeuralNetworkInformation(car);
+                if (!car.isDead){
+                    sendNeuralNetworkInformation(car);
+                    car.velocity += car.acceleration;
 
-                car.velocity += car.acceleration;
-
-                // Apply friction to simulate deceleration
-                if (car.acceleration == 0) {
-                    if (car.velocity > 0) {
-                        car.velocity -= friction;
-                    } else if (car.velocity < 0) {
-                        car.velocity += friction;
+                    // Apply friction to simulate deceleration
+                    if (car.acceleration == 0) {
+                        if (car.velocity > 0) {
+                            car.velocity -= friction;
+                        } else if (car.velocity < 0) {
+                            car.velocity += friction;
+                        }
                     }
-                }
 
-                if (car.velocity < 0.05 && car.velocity > -0.05){
-                    car.velocity = 0;
-                }
+                    if (car.velocity < 0.05 && car.velocity > -0.05){
+                        car.velocity = 0;
+                    }
 
-                // Limit velocity to maxVelocity
-                car.velocity = Math.min(maxVelocity, Math.max(-maxVelocity, car.velocity));
+                    // Limit velocity to maxVelocity
+                    car.velocity = Math.min(maxVelocity, Math.max(-maxVelocity, car.velocity));
 
-                            // Update position based on velocity and angle
-                double angleInRadians = Math.toRadians(car.angle);
-                car.x += car.velocity * Math.cos(angleInRadians);
-                car.y += car.velocity * Math.sin(angleInRadians);
+                                // Update position based on velocity and angle
+                    double angleInRadians = Math.toRadians(car.angle);
+                    car.x += car.velocity * Math.cos(angleInRadians);
+                    car.y += car.velocity * Math.sin(angleInRadians);
 
-            
-                for (Point barrier : barriers) {
-                    int barrierRadius = 5; // You can adjust this value based on your needs
                 
-                    if (Math.abs(car.x - barrier.x) <= barrierRadius && Math.abs(car.y - barrier.y) <= barrierRadius) {
+                    for (Point barrier : barriers) {
+                        int barrierRadius = 5; // You can adjust this value based on your needs
+                    
+                        if (Math.abs(car.x - barrier.x) <= barrierRadius && Math.abs(car.y - barrier.y) <= barrierRadius) {
 
-                        if (car.velocity > 0){
-                            car.x += Math.cos(angleInRadians);
-                            car.y += Math.sin(angleInRadians);
-                        }
-                        else if (car.velocity < 0){
-                            car.x -= Math.cos(angleInRadians);
-                            car.y -= Math.sin(angleInRadians);
-                        }
-                        // collision
-                        handleCollision(car);
+                            if (car.velocity > 0){
+                                car.x += Math.cos(angleInRadians);
+                                car.y += Math.sin(angleInRadians);
+                            }
+                            else if (car.velocity < 0){
+                                car.x -= Math.cos(angleInRadians);
+                                car.y -= Math.sin(angleInRadians);
+                            }
+                            // collision
+                            handleCollision(car);
 
-                        // If the car goes off the screen
-                        if (car.x < 0) {
-                            handleCollision(car);
-                        } else if (car.x > trackWidth - carWidth) {
-                            handleCollision(car);
+                            // If the car goes off the screen
+                            if (car.x < 0) {
+                                handleCollision(car);
+                            } else if (car.x > trackWidth - carWidth) {
+                                handleCollision(car);
+                            }
+                    
+                            if (car.y < 0) {
+                                handleCollision(car);
+                            } else if (car.y > trackHeight - carHeight) {
+                                handleCollision(car);
+                            }
                         }
-                
-                        if (car.y < 0) {
-                            handleCollision(car);
-                        } else if (car.y > trackHeight - carHeight) {
-                            handleCollision(car);
-                        }
-
-
                     }
                 }
             }
+              
             
             repaint(); 
         }
@@ -494,21 +505,52 @@ public class Simulator extends JFrame {
         
 
         private void handleCollision(Car car){
-
             // When a collision occurs, update the neural network based on the total distance traveled
             car.neuralNetwork.updateNeuralNetwork(inputList, outputList, actionList);
             System.out.println("Collision detected!");
 
+            car.isDead = true;
 
             // Reset car position and total distance traveled
-            car.x = 160;
-            car.y = 123;
-            car.angle = 90;
             car.velocity = 0;
             car.acceleration = 0;
-            car.reward = 0;
-
             // Update barriers and sensorCollisionPoints
+        }
+
+        private boolean isAllCarsDead(){
+            for (Car car : cars){
+                if (!car.isDead){
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void increaseIteration(){
+            iteration++;
+            if (iteration >= maxIterations || isAllCarsDead()){
+                iteration = 0;
+                generation++;
+                System.out.println("Generation: " + generation);
+                for (Car car : cars){
+                    car.neuralNetwork.updateNeuralNetwork(inputList, outputList, actionList);
+                    car.x = carX;
+                    car.y = carY;
+                    car.angle = carAngle;
+                    car.isDead = false;
+                    car.acceleration = 0;
+                    car.velocity = 0;
+                    car.reward = 0;
+                    inputList.clear();
+                    outputList.clear();
+                    actionList.clear();
+                }
+            }
+
+            if (generation >= maxGenerations){
+                System.out.println("Done");
+                System.exit(0);
+            }
 
         }
 
@@ -543,17 +585,16 @@ public class Simulator extends JFrame {
         }
 
         private void drawSensorLines(Graphics g, Car car) {
-            List<Point> currentSensorCollisionPoints;  // Store the current sensorCollisionPoints
-
-
-            currentSensorCollisionPoints = car.sensorCollisionPoint;
-
-            g.setColor(Color.YELLOW);
-
-            for (Point sensorCollisionPoint : currentSensorCollisionPoints) {
-                if (sensorCollisionPoint.x != -1 && sensorCollisionPoint.y != -1) {
-                    g.drawLine((int) car.x + carWidth / 2, (int) car.y + carHeight / 2,
-                            sensorCollisionPoint.x, sensorCollisionPoint.y);
+            List<Point> currentSensorCollisionPoints = car.sensorCollisionPoint;
+        
+            if (currentSensorCollisionPoints != null) {
+                g.setColor(Color.YELLOW);
+        
+                for (Point sensorCollisionPoint : currentSensorCollisionPoints) {
+                    if (sensorCollisionPoint.x != -1 && sensorCollisionPoint.y != -1) {
+                        g.drawLine((int) car.x + carWidth / 2, (int) car.y + carHeight / 2,
+                                sensorCollisionPoint.x, sensorCollisionPoint.y);
+                    }
                 }
             }
         }

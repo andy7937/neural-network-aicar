@@ -12,11 +12,13 @@ public class Car {
         public List<Point> sensorCollisionPoint;
         public int reward;
         public NeuralNetwork neuralNetwork;
+        public boolean isDead;
 
         public Car(double x, double y, double angle) {
             this.x = x;
             this.y = y;
             this.angle = angle;
+            this.isDead = false;
         }
 
     }
