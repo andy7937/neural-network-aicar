@@ -75,7 +75,7 @@ public class NeuralNetwork {
     public void mutateModel(MultiLayerNetwork model) {
         // Implement your mutation logic here
         // Example: Perturb some of the weights in the model
-        double mutationRate = 0.5; // Adjust the mutation rate as needed
+        double mutationRate = 0.1; // Adjust the mutation rate as needed
     
         for (int i = 0; i < model.getLayers().length; i++) {
             INDArray weights = model.getLayer(i).getParam("W");
@@ -88,16 +88,15 @@ public class NeuralNetwork {
         }
     }
     
-    public NeuralNetwork crossoverNeuralNetwork(NeuralNetwork model1, NeuralNetwork model2, NeuralNetwork model3, NeuralNetwork model4) {
+    public NeuralNetwork crossoverNeuralNetwork(NeuralNetwork model1, NeuralNetwork model2) {
         try {
             // Clone the models of the parents
             MultiLayerNetwork clonedModel1 = model1.getModel().clone();
             MultiLayerNetwork clonedModel2 = model2.getModel().clone();
-            MultiLayerNetwork clonedModel3 = model3.getModel().clone();
-            MultiLayerNetwork clonedModel4 = model4.getModel().clone();
+
     
             // Crossover the results of the first two crossovers
-            MultiLayerNetwork crossoveredModel = crossoverModels(crossoverModels(clonedModel1, clonedModel2), crossoverModels(clonedModel3, clonedModel4));
+            MultiLayerNetwork crossoveredModel = crossoverModels(clonedModel1, clonedModel2);
     
             // Create a new NeuralNetwork and set the crossovered model
             NeuralNetwork crossoveredNetwork = new NeuralNetwork(numInputs, numHiddenNeurons, numOutputs);

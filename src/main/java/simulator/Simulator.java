@@ -48,7 +48,6 @@ public class Simulator extends JFrame {
     private List<INDArray> outputList = new ArrayList<>();
     private List<INDArray> inputList = new ArrayList<>();
     private List<Integer> actionList = new ArrayList<>();
-    private int reward = 0;
     private List<Point> pointsCreated = new ArrayList<>();
     private List<Car> cars = new ArrayList<>();
     private int numOfCars = 20;
@@ -59,7 +58,7 @@ public class Simulator extends JFrame {
 
 
 
-    Random random = new Random();
+    Random random = new Random(System.currentTimeMillis());
     
 
     public Simulator() {
@@ -239,6 +238,10 @@ public class Simulator extends JFrame {
         raceCourse.add(createWall(new Point(1381, 861), new Point(1665, 872)));
         raceCourse.add(createWall(new Point(1665, 872), new Point(1651, 136)));
         raceCourse.add(createWall(new Point(42, 82), new Point(270, 96)));
+        raceCourse.add(createWall(new Point(111, 139), new Point(72, 235)));
+        raceCourse.add(createWall(new Point(193, 175), new Point(246, 251)));
+
+
 
         
 
@@ -492,7 +495,6 @@ public class Simulator extends JFrame {
             inputList.add(inputVector);
             actionList.add(outputAction);
             double adjustedTurnRate = baseCarTurnRate * (Math.abs(car.velocity * 0.8) / maxVelocity);
-            reward++;
 
             // Update the neural network based on the output given
             switch (outputAction) {
@@ -538,11 +540,24 @@ public class Simulator extends JFrame {
                 List<Car> topCars = findBestCar();
                 System.out.println("Generation: " + generation);
 
-                neuralNetwork.crossoverNeuralNetwork(topCars.get(0).neuralNetwork, topCars.get(1).neuralNetwork, topCars.get(2).neuralNetwork, topCars.get(3).neuralNetwork);
 
                 for (int i = 0; i < numOfCars; i++){
-                    mutatedNeuralNetwork = neuralNetwork.mutateNeuralNetwork(neuralNetwork);
-                    cars.get(i).neuralNetwork = mutatedNeuralNetwork;
+
+                    neuralNetwork.crossoverNeuralNetwork(topCars.get(0).neuralNetwork, topCars.get(1).neuralNetwork);
+
+                    // half chance to mutate the crossover neural network
+                    if (random.nextInt(2) == 0){
+                        mutatedNeuralNetwork = neuralNetwork.mutateNeuralNetwork(neuralNetwork);
+                        cars.get(i).neuralNetwork = mutatedNeuralNetwork;
+
+                    // half chance to mutate one of the two top neural networks
+                    }else{
+                        int rand = random.nextInt(2);
+                        neuralNetwork = topCars.get(rand).neuralNetwork;
+                        cars.get(i).neuralNetwork = neuralNetwork.mutateNeuralNetwork(neuralNetwork);
+
+                    }
+
                 }
             
 
@@ -560,14 +575,14 @@ public class Simulator extends JFrame {
 
         }
 
-        // find top 4 best cars
+        // find top 2 best cars
         private List<Car> findBestCar(){
 
             List<Car> carsCopy = new ArrayList<>(cars);
             List<Car> topCars = new ArrayList<>();
             Car topcar = null;
 
-            for (int i = 0; i < 4; i++){
+            for (int i = 0; i < 2; i++){
                 topcar = carsCopy.get(0);
                 for (Car car : carsCopy){
                     if (car.reward > topcar.reward){
@@ -597,6 +612,8 @@ public class Simulator extends JFrame {
         }
 
 
+
+
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
@@ -607,8 +624,14 @@ public class Simulator extends JFrame {
             drawTrack(offScreenGraphics);
 
             for (Car car : cars){
-                drawCar(offScreenGraphics, car);
-                drawSensorLines(offScreenGraphics, car);          
+
+                if (car.isDead){
+                    drawCar(offScreenGraphics, car);       
+                }
+                else{
+                    drawSensorLines(offScreenGraphics, car);   
+                    drawCar(offScreenGraphics, car);       
+                }
             }
             
             g.drawImage(offScreenBuffer, 0, 0, this);
