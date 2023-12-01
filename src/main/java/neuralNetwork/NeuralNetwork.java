@@ -22,10 +22,10 @@ public class NeuralNetwork {
     public static int numInputs;
     public static int numHiddenNeurons;
     public static int numOutputs;
+    Random random = new Random(System.currentTimeMillis());
 
 
     public NeuralNetwork(int numInputs, int numHiddenNeurons, int numOutputs) {
-        Random random = new Random(System.currentTimeMillis());
         int i = random.nextInt(100000000);
         int j = random.nextInt(100000000);
 
@@ -53,12 +53,93 @@ public class NeuralNetwork {
         this.model.init();
     }
 
-    public void mutateNeuralNetwork() {
-
+    public NeuralNetwork mutateNeuralNetwork(NeuralNetwork model) {
+        try {
+            // Clone the model to create an independent copy
+            MultiLayerNetwork mutatedModel = model.getModel().clone();
+    
+            // Perform mutation on the cloned model
+            mutateModel(mutatedModel);
+    
+            // Create a new NeuralNetwork and set the mutated model
+            NeuralNetwork mutatedNetwork = new NeuralNetwork(numInputs, numHiddenNeurons, numOutputs);
+            mutatedNetwork.setModel(mutatedModel);
+    
+            return mutatedNetwork;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null; // Handle the exception appropriately in your application
+        }
+    }
+    
+    public void mutateModel(MultiLayerNetwork model) {
+        // Implement your mutation logic here
+        // Example: Perturb some of the weights in the model
+        double mutationRate = 0.1; // Adjust the mutation rate as needed
+    
+        for (int i = 0; i < model.getLayers().length; i++) {
+            INDArray weights = model.getLayer(i).getParam("W");
+            for (int j = 0; j < weights.length(); j++) {
+                if (random.nextDouble() < mutationRate) {
+                    // Perturb the weight with a small random value
+                    weights.putScalar(j, weights.getDouble(j) + random.nextGaussian() * 0.01);
+                }
+            }
+        }
+    }
+    
+    public NeuralNetwork crossoverNeuralNetwork(NeuralNetwork model1, NeuralNetwork model2, NeuralNetwork model3, NeuralNetwork model4) {
+        try {
+            // Clone the models of the parents
+            MultiLayerNetwork clonedModel1 = model1.getModel().clone();
+            MultiLayerNetwork clonedModel2 = model2.getModel().clone();
+            MultiLayerNetwork clonedModel3 = model3.getModel().clone();
+            MultiLayerNetwork clonedModel4 = model4.getModel().clone();
+    
+            // Crossover the results of the first two crossovers
+            MultiLayerNetwork crossoveredModel = crossoverModels(crossoverModels(clonedModel1, clonedModel2), crossoverModels(clonedModel3, clonedModel4));
+    
+            // Create a new NeuralNetwork and set the crossovered model
+            NeuralNetwork crossoveredNetwork = new NeuralNetwork(numInputs, numHiddenNeurons, numOutputs);
+            crossoveredNetwork.setModel(crossoveredModel);
+    
+            return crossoveredNetwork;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null; // Handle the exception appropriately in your application
+        }
+    }
+    
+    public MultiLayerNetwork crossoverModels(MultiLayerNetwork model1, MultiLayerNetwork model2) {
+        // Implement your crossover logic here
+        // Example: Exchange some of the weights between the two models
+        for (int i = 0; i < model1.getLayers().length; i++) {
+            INDArray weights1 = model1.getLayer(i).getParam("W");
+            INDArray weights2 = model2.getLayer(i).getParam("W");
+    
+    
+            performCrossover(weights1, weights2);
+        }
+    
+        return model1; // Return one of the models (you may adjust this based on your logic)
+    }
+    
+    public void performCrossover(INDArray weights1, INDArray weights2) {
+        // Implement your specific crossover strategy here
+        // Example: Exchange some of the weights between the two models
+        for (int i = 0; i < weights1.length(); i++) {
+            if (random.nextBoolean()) {
+                // Swap some of the weights between the two models
+                double temp = weights1.getDouble(i);
+                weights1.putScalar(i, weights2.getDouble(i));
+                weights2.putScalar(i, temp);
+            }
+        }
     }
 
-    public void crossoverNeuralNetwork() {
-
+    // Get the model of the neural network
+    public MultiLayerNetwork getModel() {
+        return model;
     }
     
     // Train the neural network with a single step of simulation data

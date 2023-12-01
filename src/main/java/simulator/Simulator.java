@@ -51,7 +51,7 @@ public class Simulator extends JFrame {
     private int reward = 0;
     private List<Point> pointsCreated = new ArrayList<>();
     private List<Car> cars = new ArrayList<>();
-    private int numOfCars = 10;
+    private int numOfCars = 20;
     private int iteration = 0;
     private int maxIterations = 500;
     private int generation = 0;
@@ -85,6 +85,9 @@ public class Simulator extends JFrame {
         GenerateInputVector.numInputs = numInputs;
         GenerateOutputVector.numOutputs = numOutputs;
         GenerateOutputVector.numInputs = numInputs;
+        NeuralNetwork.numInputs = numInputs;
+        NeuralNetwork.numHiddenNeurons = numHiddenNeurons;
+        NeuralNetwork.numOutputs = numOutputs;
 
 
         offScreenBuffer = new BufferedImage(trackWidth, trackHeight, BufferedImage.TYPE_INT_ARGB);
@@ -274,6 +277,8 @@ public class Simulator extends JFrame {
 
     public class SimulatorPanel extends JPanel {
 
+        private NeuralNetwork neuralNetwork = new NeuralNetwork(numInputs, numHiddenNeurons, numOutputs);
+        private NeuralNetwork mutatedNeuralNetwork = new NeuralNetwork(numInputs, numHiddenNeurons, numOutputs);
         private GenerateInputVector generateInputVector = new GenerateInputVector();
         private GenerateOutputVector generateOutputVector = new GenerateOutputVector();
 
@@ -335,6 +340,7 @@ public class Simulator extends JFrame {
                 if (!car.isDead){
                     sendNeuralNetworkInformation(car);
                     car.velocity += car.acceleration;
+                    car.reward++;
 
                     // Apply friction to simulate deceleration
                     if (car.acceleration == 0) {
@@ -533,9 +539,14 @@ public class Simulator extends JFrame {
                 List<Car> topCars = findBestCar();
                 System.out.println("Generation: " + generation);
 
-                // for the top 3 cars, do something
-                for (Car car : topCars){
+                neuralNetwork.crossoverNeuralNetwork(topCars.get(0).neuralNetwork, topCars.get(1).neuralNetwork, topCars.get(2).neuralNetwork, topCars.get(3).neuralNetwork);
+
+                for (int i = 0; i < numOfCars; i++){
+                    mutatedNeuralNetwork = neuralNetwork.mutateNeuralNetwork(neuralNetwork);
+                    cars.get(i).neuralNetwork = mutatedNeuralNetwork;
                 }
+            
+
                 iteration = 0;
                 generation++;
                 System.out.println("Generation: " + generation);
@@ -550,14 +561,14 @@ public class Simulator extends JFrame {
 
         }
 
-        // find top 3 best cars
+        // find top 4 best cars
         private List<Car> findBestCar(){
 
             List<Car> carsCopy = new ArrayList<>(cars);
             List<Car> topCars = new ArrayList<>();
             Car topcar = null;
 
-            for (int i = 0; i <= 3; i++){
+            for (int i = 0; i <= 4; i++){
                 topcar = carsCopy.get(0);
                 for (Car car : carsCopy){
                     if (car.reward > topcar.reward){
@@ -573,7 +584,6 @@ public class Simulator extends JFrame {
 
         private void resetCars(){
             for (Car car : cars){
-                findBestCar();
                 car.x = carX;
                 car.y = carY;
                 car.angle = carAngle;

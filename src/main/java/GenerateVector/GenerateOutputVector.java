@@ -12,9 +12,9 @@ public class GenerateOutputVector {
     public INDArray outputVector;
 
     public int generateOutputVector(INDArray input, NeuralNetwork neuralNetwork) {
-        // Assuming the neural network has 4 outputs:
+        // Assuming the neural network has 2 outputs:
         // 1. A (turn left)
-        // 3. D (turn right)
+        // 2. D (turn right)
 
 
         // Get the neural network's predictions
