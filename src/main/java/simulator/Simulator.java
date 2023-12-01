@@ -53,7 +53,7 @@ public class Simulator extends JFrame {
     private List<Car> cars = new ArrayList<>();
     private int numOfCars = 10;
     private int iteration = 0;
-    private int maxIterations = 1000;
+    private int maxIterations = 500;
     private int generation = 0;
     private int maxGenerations = 100;
 
@@ -505,8 +505,6 @@ public class Simulator extends JFrame {
         
 
         private void handleCollision(Car car){
-            // When a collision occurs, update the neural network based on the total distance traveled
-            car.neuralNetwork.updateNeuralNetwork(inputList, outputList, actionList);
             System.out.println("Collision detected!");
 
             car.isDead = true;
@@ -527,24 +525,22 @@ public class Simulator extends JFrame {
         }
 
         private void increaseIteration(){
+            System.out.println("Iteration: " + iteration);
             iteration++;
+        
+            // if all cars are dead or iteration is greater than maxIterations, update neural networks and get next generation
             if (iteration >= maxIterations || isAllCarsDead()){
+                List<Car> topCars = findBestCar();
+                System.out.println("Generation: " + generation);
+
+                // for the top 3 cars, do something
+                for (Car car : topCars){
+                }
                 iteration = 0;
                 generation++;
                 System.out.println("Generation: " + generation);
-                for (Car car : cars){
-                    car.neuralNetwork.updateNeuralNetwork(inputList, outputList, actionList);
-                    car.x = carX;
-                    car.y = carY;
-                    car.angle = carAngle;
-                    car.isDead = false;
-                    car.acceleration = 0;
-                    car.velocity = 0;
-                    car.reward = 0;
-                    inputList.clear();
-                    outputList.clear();
-                    actionList.clear();
-                }
+                resetCars();
+             
             }
 
             if (generation >= maxGenerations){
@@ -552,6 +548,43 @@ public class Simulator extends JFrame {
                 System.exit(0);
             }
 
+        }
+
+        // find top 3 best cars
+        private List<Car> findBestCar(){
+
+            List<Car> carsCopy = new ArrayList<>(cars);
+            List<Car> topCars = new ArrayList<>();
+            Car topcar = null;
+
+            for (int i = 0; i <= 3; i++){
+                topcar = carsCopy.get(0);
+                for (Car car : carsCopy){
+                    if (car.reward > topcar.reward){
+                        topcar = car;
+                    }
+                }
+                carsCopy.remove(topcar);
+                topCars.add(topcar);
+            }
+
+            return topCars;
+        }
+
+        private void resetCars(){
+            for (Car car : cars){
+                findBestCar();
+                car.x = carX;
+                car.y = carY;
+                car.angle = carAngle;
+                car.isDead = false;
+                car.acceleration = 0;
+                car.velocity = 0;
+                car.reward = 0;
+                inputList.clear();
+                outputList.clear();
+                actionList.clear();
+            }
         }
 
 

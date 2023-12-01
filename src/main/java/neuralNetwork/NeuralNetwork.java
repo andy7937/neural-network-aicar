@@ -53,9 +53,11 @@ public class NeuralNetwork {
         this.model.init();
     }
 
-    public void updateNeuralNetwork(List<INDArray> inputVectorList, List<INDArray> outputVectorList, List<Integer> actionList) {
+    public void mutateNeuralNetwork() {
 
+    }
 
+    public void crossoverNeuralNetwork() {
 
     }
     
