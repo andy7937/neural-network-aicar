@@ -50,7 +50,7 @@ public class Simulator extends JFrame {
     private List<Integer> actionList = new ArrayList<>();
     private List<Point> pointsCreated = new ArrayList<>();
     private List<Car> cars = new ArrayList<>();
-    private int numOfCars = 20;
+    private int numOfCars = 50;
     private int iteration = 0;
     private int maxIterations = 500;
     private int generation = 0;
@@ -491,7 +491,7 @@ public class Simulator extends JFrame {
             outputList.add(generateOutputVector.outputVector);
             inputList.add(inputVector);
             actionList.add(outputAction);
-            double adjustedTurnRate = baseCarTurnRate * (Math.abs(car.velocity * 0.8) / maxVelocity);
+            double adjustedTurnRate = baseCarTurnRate * (Math.abs(car.velocity * 0.3) / maxVelocity);
 
             // Update the neural network based on the output given
             switch (outputAction) {
@@ -538,18 +538,26 @@ public class Simulator extends JFrame {
                 System.out.println("Generation: " + generation);
 
 
-                for (int i = 2; i < numOfCars; i++){
+                for (int i = 4; i < numOfCars; i++){
 
 
                     neuralNetwork.crossoverNeuralNetwork(topCars.get(0).neuralNetwork, topCars.get(1).neuralNetwork);
 
+                    
                     // half chance to mutate the crossover neural network
-                    if (random.nextInt(2) == 0){
+                    if (random.nextInt(3) == 0){
                         mutatedNeuralNetwork = neuralNetwork.mutateNeuralNetwork(neuralNetwork);
                         cars.get(i).neuralNetwork = mutatedNeuralNetwork;
 
+                    }
+
+                    // third chance of just getting the crossover neural network
+                    else if (random.nextInt(3) == 0){
+                        cars.get(i).neuralNetwork = neuralNetwork;
+                    }
+                    
                     // half chance to mutate one of the two top neural networks
-                    }else{
+                    else{
                         int rand = random.nextInt(2);
                         neuralNetwork = topCars.get(rand).neuralNetwork;
                         cars.get(i).neuralNetwork = neuralNetwork.mutateNeuralNetwork(neuralNetwork);
@@ -560,7 +568,9 @@ public class Simulator extends JFrame {
 
                 // add the top 2 neural networks to the next generation in case the mutations are worse
                 cars.get(0).neuralNetwork = topCars.get(0).neuralNetwork;
-                cars.get(1).neuralNetwork = topCars.get(1).neuralNetwork;
+                cars.get(1).neuralNetwork = topCars.get(0).neuralNetwork;
+                cars.get(2).neuralNetwork = topCars.get(1).neuralNetwork;
+                cars.get(3).neuralNetwork = topCars.get(1).neuralNetwork;
             
 
                 iteration = 0;
@@ -615,7 +625,6 @@ public class Simulator extends JFrame {
             }
         }
 
-
         // last x is the x to the left of the car by 100 units. It gets updated if the x of the car is greater than the last x
         private void updateLastX(Car car){
             if (car.x > car.lastX){
@@ -629,8 +638,6 @@ public class Simulator extends JFrame {
             }
             return false;
         }
-
-
 
 
 
