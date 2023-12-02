@@ -30,7 +30,7 @@ public class NeuralNetwork {
         int j = random.nextInt(100000000);
 
         // Randomize the learning rate during initialization
-        double learningRate = 0.001; // You can adjust the range as needed
+        double learningRate = 0.01; // You can adjust the range as needed
 
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
                 .seed(i + j + 5)
@@ -75,14 +75,14 @@ public class NeuralNetwork {
     public void mutateModel(MultiLayerNetwork model) {
         // Implement your mutation logic here
         // Example: Perturb some of the weights in the model
-        double mutationRate = 0.1; // Adjust the mutation rate as needed
+        double mutationRate = 0.3; // Adjust the mutation rate as needed
     
         for (int i = 0; i < model.getLayers().length; i++) {
             INDArray weights = model.getLayer(i).getParam("W");
             for (int j = 0; j < weights.length(); j++) {
                 if (random.nextDouble() < mutationRate) {
                     // Perturb the weight with a small random value
-                    weights.putScalar(j, weights.getDouble(j) + random.nextGaussian() * 0.1);
+                    weights.putScalar(j, weights.getDouble(j) + random.nextGaussian() * 0.02);
                 }
             }
         }

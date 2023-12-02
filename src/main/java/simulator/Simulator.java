@@ -28,7 +28,7 @@ public class Simulator extends JFrame {
     private double carAcceleration = 0; // Car acceleration
     private double carAngle = 0; // Car angle in degrees
     private final int baseCarTurnRate = 10; // Car turning speed
-    private final double maxVelocity = 8; // Maximum velocity
+    private final double maxVelocity = 6; // Maximum velocity
     private final double accelerationRate = 0.075; // Acceleration rate
     private final double velocityDecayRate = 0.5; // Velocity decay rate
     private final double friction = 0.02; // Friction to simulate deceleration
@@ -43,7 +43,7 @@ public class Simulator extends JFrame {
     private BufferedImage offScreenBuffer;
     private Point firstClick;
     private int numInputs = 14;
-    private int numHiddenNeurons = 8;
+    private int numHiddenNeurons = 10;
     private int numOutputs = 2;
     private List<INDArray> outputList = new ArrayList<>();
     private List<INDArray> inputList = new ArrayList<>();
@@ -155,7 +155,6 @@ public class Simulator extends JFrame {
                 // if all cars are dead then stop the timer
                 panel.moveCar();
                 repaint();
-
             }
         });
 
@@ -166,6 +165,7 @@ public class Simulator extends JFrame {
                 while (true) {
                     for (Car car : cars){
                         panel.calculateSensorCollisionPoints(car);
+                        repaint();
                     }
                     try {
                         Thread.sleep(10); // Adjust the sleep duration as needed
@@ -186,7 +186,6 @@ public class Simulator extends JFrame {
 
         raceCourse.add(createWall(new Point(34, 69), new Point(37, 558)));
         raceCourse.add(createWall(new Point(37, 558), new Point(129, 813)));
-        raceCourse.add(createWall(new Point(129, 813), new Point(129, 814)));
         raceCourse.add(createWall(new Point(129, 814), new Point(288, 922)));
         raceCourse.add(createWall(new Point(288, 922), new Point(299, 927)));
         raceCourse.add(createWall(new Point(299, 927), new Point(627, 947)));
@@ -213,17 +212,9 @@ public class Simulator extends JFrame {
         raceCourse.add(createWall(new Point(259, 88), new Point(272, 280)));
         raceCourse.add(createWall(new Point(272, 280), new Point(284, 298)));
         raceCourse.add(createWall(new Point(284, 298), new Point(304, 429)));
-        raceCourse.add(createWall(new Point(304, 429), new Point(306, 436)));
         raceCourse.add(createWall(new Point(306, 436), new Point(367, 578)));
-        raceCourse.add(createWall(new Point(367, 578), new Point(454, 574)));
-        raceCourse.add(createWall(new Point(454, 574), new Point(517, 600)));
-        raceCourse.add(createWall(new Point(517, 600), new Point(455, 583)));
-        raceCourse.add(createWall(new Point(455, 583), new Point(375, 606)));
         raceCourse.add(createWall(new Point(375, 606), new Point(521, 315)));
-        raceCourse.add(createWall(new Point(521, 315), new Point(523, 613)));
-        raceCourse.add(createWall(new Point(523, 613), new Point(527, 340)));
         raceCourse.add(createWall(new Point(527, 340), new Point(707, 227)));
-        raceCourse.add(createWall(new Point(707, 227), new Point(713, 244)));
         raceCourse.add(createWall(new Point(713, 244), new Point(1004, 224)));
         raceCourse.add(createWall(new Point(1004, 224), new Point(1013, 234)));
         raceCourse.add(createWall(new Point(1013, 234), new Point(1174, 281)));
@@ -238,8 +229,10 @@ public class Simulator extends JFrame {
         raceCourse.add(createWall(new Point(1381, 861), new Point(1665, 872)));
         raceCourse.add(createWall(new Point(1665, 872), new Point(1651, 136)));
         raceCourse.add(createWall(new Point(42, 82), new Point(270, 96)));
-        raceCourse.add(createWall(new Point(111, 139), new Point(72, 235)));
-        raceCourse.add(createWall(new Point(193, 175), new Point(246, 251)));
+        raceCourse.add(createWall(new Point(303, 926), new Point(656, 791)));
+        raceCourse.add(createWall(new Point(545, 836), new Point(660, 655)));
+
+
 
 
 
@@ -341,10 +334,14 @@ public class Simulator extends JFrame {
 
             for (Car car: cars){
                 if (!car.isDead){
+                    updateLastX(car);
                     sendNeuralNetworkInformation(car);
                     car.velocity += car.acceleration;
                     car.reward++;
 
+                    if (isCarBehindX(car)){
+                        handleCollision(car);
+                    }
                     // Apply friction to simulate deceleration
                     if (car.acceleration == 0) {
                         if (car.velocity > 0) {
@@ -409,8 +406,8 @@ public class Simulator extends JFrame {
             List<Point> newSensorCollisionPoints = new ArrayList<>();
         
             int numSensors = 7; // Adjust the number of sensors as needed
-            double startSensorAngle = Math.toRadians(-45); // Start angle for the first sensor
-            double endSensorAngle = Math.toRadians(45); // End angle for the last sensor
+            double startSensorAngle = Math.toRadians(-60); // Start angle for the first sensor
+            double endSensorAngle = Math.toRadians(60); // End angle for the last sensor
             double angleIncrement = (endSensorAngle - startSensorAngle) / (numSensors - 1); // Angle increment between sensors
             double angleInRadians = Math.toRadians(car.angle);
         
@@ -541,7 +538,8 @@ public class Simulator extends JFrame {
                 System.out.println("Generation: " + generation);
 
 
-                for (int i = 0; i < numOfCars; i++){
+                for (int i = 2; i < numOfCars; i++){
+
 
                     neuralNetwork.crossoverNeuralNetwork(topCars.get(0).neuralNetwork, topCars.get(1).neuralNetwork);
 
@@ -559,6 +557,10 @@ public class Simulator extends JFrame {
                     }
 
                 }
+
+                // add the top 2 neural networks to the next generation in case the mutations are worse
+                cars.get(0).neuralNetwork = topCars.get(0).neuralNetwork;
+                cars.get(1).neuralNetwork = topCars.get(1).neuralNetwork;
             
 
                 iteration = 0;
@@ -596,6 +598,7 @@ public class Simulator extends JFrame {
             return topCars;
         }
 
+
         private void resetCars(){
             for (Car car : cars){
                 car.x = carX;
@@ -605,11 +608,28 @@ public class Simulator extends JFrame {
                 car.acceleration = 0;
                 car.velocity = 0;
                 car.reward = 0;
+                car.lastX = 0;
                 inputList.clear();
                 outputList.clear();
                 actionList.clear();
             }
         }
+
+
+        // last x is the x to the left of the car by 100 units. It gets updated if the x of the car is greater than the last x
+        private void updateLastX(Car car){
+            if (car.x > car.lastX){
+                car.lastX = (int) car.x - 5;
+            }
+        }
+
+        private boolean isCarBehindX(Car car){
+            if (car.x < car.lastX){
+                return true;
+            }
+            return false;
+        }
+
 
 
 

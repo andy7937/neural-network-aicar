@@ -13,12 +13,14 @@ public class Car {
         public int reward;
         public NeuralNetwork neuralNetwork;
         public boolean isDead;
+        public int lastX;
 
         public Car(double x, double y, double angle) {
             this.x = x;
             this.y = y;
             this.angle = angle;
             this.isDead = false;
+            this.lastX = 0;
         }
 
     }
