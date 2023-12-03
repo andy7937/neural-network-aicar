@@ -1,1 +1,7 @@
 # neural-network-aicar
+
+
+Clarification for misuse of inputs
+
+At the beginning of this project, I had thought of using the points of the sensors (with no max range) as the inputs for the inputvectors. This meant that the x value of a sensor would range from 0 to 1920 and the y value would range from 0 to 1080.
+The problem of using this as the inputs is that this had no actual meaning for the inputs (no consistency) in terms of the position of the car on the map with relation to the barriers. It allowed the neural networks to learn for very specific scenarios when all the points would align, but when it faced to points, it would go insane. The first way I thought of solving this problem was to add a max range to the sensors. This would allow for more information and learning to occur, as it meant that if theres a range, it could know there is no barrier ahead of the car if the value was the max range, allowing for the neural network to go to that direction. This would lead me onto the next fix, as having a max range would not mean anything with the x and y values given to the inputs, instead using a distance measure of the points would effectively allow the neural network to know when a wall would be close, and if there is a path forward. 
