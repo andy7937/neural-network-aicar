@@ -75,7 +75,7 @@ public class NeuralNetwork {
     public void mutateModel(MultiLayerNetwork model) {
         // Implement your mutation logic here
         // Example: Perturb some of the weights in the model
-        double mutationRate = 0.2; // Adjust the mutation rate as needed
+        double mutationRate = 0.3; // Adjust the mutation rate as needed
     
         for (int i = 0; i < model.getLayers().length; i++) {
             INDArray weights = model.getLayer(i).getParam("W");

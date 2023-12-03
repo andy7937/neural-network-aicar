@@ -10,17 +10,16 @@ public class Car {
         public double acceleration = 0; // Car acceleration
         public double angle; // Car angle in degrees
         public List<Point> sensorCollisionPoint;
+        public List<Double> sensorDistance;
         public int reward;
         public NeuralNetwork neuralNetwork;
         public boolean isDead;
-        public int lastX;
 
         public Car(double x, double y, double angle) {
             this.x = x;
             this.y = y;
             this.angle = angle;
             this.isDead = false;
-            this.lastX = 0;
         }
 
     }
