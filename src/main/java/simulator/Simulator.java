@@ -28,7 +28,7 @@ public class Simulator extends JFrame {
     private double carAcceleration = 0; // Car acceleration
     private double carAngle = 90; // Car angle in degrees
     private final int baseCarTurnRate = 10; // Car turning speed
-    private final double maxVelocity = 6; // Maximum velocity
+    private final double maxVelocity = 10; // Maximum velocity
     private final double accelerationRate = 0.075; // Acceleration rate
     private final double velocityDecayRate = 0.5; // Velocity decay rate
     private final double friction = 0.02; // Friction to simulate deceleration
@@ -184,7 +184,23 @@ public class Simulator extends JFrame {
         raceCourse.add(createWall(new Point(210 + radius, 800), new Point(210 + radius, 200)));
 
         // second curve down (from cars perspective)
-        raceCourse.add(createCurveD(new Point(30 + radius*2, 200)));
+        raceCourse.add(createCurveD(new Point(30 + radius + radius, 200)));
+
+        // wall from end of curveD tilted straight right
+        raceCourse.add(createWall(new Point(210 + radius, 200), new Point(450 + radius, 500)));
+        raceCourse.add(createWall(new Point(390 + radius , 200), new Point(630 + radius, 500)));
+
+        // wall from tilted straight right to tiled straight left
+        raceCourse.add(createWall(new Point(450 + radius, 500), new Point(210 + radius, 800)));
+        raceCourse.add(createWall(new Point(630 + radius , 500), new Point(390 + radius, 800)));
+
+
+        // second curve up (from cars perspective)
+        raceCourse.add(createCurvedU(new Point(30 + radius * 3, 800)));
+
+
+
+
 
 
 
@@ -205,8 +221,6 @@ public class Simulator extends JFrame {
     
             // wall is curved downwards
             if (wall.isCurveD) {
-                // Assuming you have a radius for the semi-circle
-                int radius = 100; // Adjust the radius as needed
     
                 // Iterate through angles to create points on the semi-circle
                 for (int angle = 180; angle <= 360; angle++) {
@@ -434,7 +448,7 @@ public class Simulator extends JFrame {
             outputList.add(generateOutputVector.outputVector);
             inputList.add(inputVector);
             actionList.add(outputAction);
-            double adjustedTurnRate = baseCarTurnRate * (Math.abs(car.velocity * 0.4) / maxVelocity);
+            double adjustedTurnRate = baseCarTurnRate * (Math.abs(car.velocity * 0.5) / maxVelocity);
 
             // Update the neural network based on the output given
             switch (outputAction) {
@@ -639,9 +653,12 @@ public class Simulator extends JFrame {
             }
         }
 
+        // give each car a different color
         private void drawCar(Graphics g, Car car) {
             Graphics2D g2d = (Graphics2D) g;
-            g2d.setColor(Color.RED);
+
+
+            g2d.setColor(car.colour);
         
             // Create an AffineTransform to rotate the car
             AffineTransform oldTransform = g2d.getTransform();

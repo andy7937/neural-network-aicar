@@ -38,7 +38,7 @@ public class GenerateInputVector {
     }
 
     // Set the car velocity
-    inputVector.putScalar(7, normalize(carVelocity, 0, 60));
+    inputVector.putScalar(7, normalize(carVelocity, 0, 100));
 
     // Set the car acceleration
     inputVector.putScalar(8, normalize(carAcceleration, -10, 10));

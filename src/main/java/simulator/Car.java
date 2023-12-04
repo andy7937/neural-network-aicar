@@ -1,6 +1,8 @@
 package simulator;
 
+import java.awt.Color;
 import java.util.List;
+import java.util.Random;
 
 import neuralNetwork.NeuralNetwork;
 
@@ -14,12 +16,22 @@ public class Car {
         public int reward;
         public NeuralNetwork neuralNetwork;
         public boolean isDead;
+        public Color colour;
 
         public Car(double x, double y, double angle) {
             this.x = x;
             this.y = y;
             this.angle = angle;
             this.isDead = false;
+            this.colour = randomColour();
+        }
+
+        private Color randomColour() {
+            Random rand = new Random();
+            float r = rand.nextFloat();
+            float g = rand.nextFloat();
+            float b = rand.nextFloat();
+            return new Color(r, g, b);
         }
 
     }
