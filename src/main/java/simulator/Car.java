@@ -17,6 +17,7 @@ public class Car {
         public NeuralNetwork neuralNetwork;
         public boolean isDead;
         public Color colour;
+        Random rand = new Random(System.currentTimeMillis());
 
         public Car(double x, double y, double angle) {
             this.x = x;
@@ -27,7 +28,6 @@ public class Car {
         }
 
         private Color randomColour() {
-            Random rand = new Random();
             float r = rand.nextFloat();
             float g = rand.nextFloat();
             float b = rand.nextFloat();

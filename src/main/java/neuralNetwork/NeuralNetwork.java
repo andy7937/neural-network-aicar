@@ -81,7 +81,7 @@ public class NeuralNetwork {
             for (int j = 0; j < weights.length(); j++) {
                 if (random.nextDouble() < mutationRate) {
                     // Perturb the weight with a small random value
-                    weights.putScalar(j, weights.getDouble(j) + random.nextGaussian() * 0.05);
+                    weights.putScalar(j, weights.getDouble(j) + random.nextGaussian() * 0.3);
                 }
             }
         }

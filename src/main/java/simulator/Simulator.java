@@ -3,7 +3,6 @@ package simulator;
 import javax.swing.*;
 
 import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.cpu.nativecpu.bindings.Nd4jCpu.create;
 
 import GenerateVector.GenerateInputVector;
 import GenerateVector.GenerateOutputVector;
@@ -197,6 +196,33 @@ public class Simulator extends JFrame {
 
         // second curve up (from cars perspective)
         raceCourse.add(createCurvedU(new Point(30 + radius * 3, 800)));
+
+        // from second curve, getting smaller wall
+        raceCourse.add(createWall(new Point(30 + radius * 4, 800), new Point(30 + radius * 4 + 120, 500)));
+
+        // opening tunnel from tight wall
+        raceCourse.add(createWall(new Point(30 + radius * 4 + 120, 500), new Point(30 + radius * 4 + 360, 200)));
+
+        // small walls in the tunnel
+
+        // first row of small walls
+        raceCourse.add(createWall(new Point(30 + radius * 4 + 10, 350), new Point(30 + radius * 4 + 30, 350)));
+        raceCourse.add(createWall(new Point(30 + radius * 4 + 80, 350), new Point(30 + radius * 4 + 100, 350)));
+        raceCourse.add(createWall(new Point(30 + radius * 4 + 150, 350), new Point(30 + radius * 4 + 170, 350)));
+
+
+        // second row of small walls
+        raceCourse.add(createWall(new Point(30 + radius * 3 + 40, 250), new Point(30 + radius * 3 + 60, 250)));
+        raceCourse.add(createWall(new Point(30 + radius * 4, 250), new Point(30 + radius * 4 + 20, 250)));
+        raceCourse.add(createWall(new Point(30 + radius * 4 + 160, 250), new Point(30 + radius * 4 + 180, 250)));
+        raceCourse.add(createWall(new Point(30 + radius * 5 + 120, 250), new Point(30 + radius * 5 + 140, 250)));
+
+
+
+
+
+
+
 
 
 
