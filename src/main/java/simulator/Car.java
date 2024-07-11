@@ -33,5 +33,6 @@ public class Car {
             float b = rand.nextFloat();
             return new Color(r, g, b);
         }
+        
 
     }
