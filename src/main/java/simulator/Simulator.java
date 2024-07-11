@@ -41,15 +41,15 @@ public class Simulator extends JFrame {
     private List<Point> barriers;
     private BufferedImage offScreenBuffer;
     private Point firstClick;
-    private int numInputs = 9;
+    private int numInputs = 7;
     private int numHiddenNeurons = 5;
-    private int numOutputs = 2;
+    private int numOutputs = 3;
     private List<INDArray> outputList = new ArrayList<>();
     private List<INDArray> inputList = new ArrayList<>();
     private List<Integer> actionList = new ArrayList<>();
     private List<Point> pointsCreated = new ArrayList<>();
     private List<Car> cars = new ArrayList<>();
-    private int numOfCars = 20;
+    private int numOfCars = 50;
     private int iteration = 0;
     private int maxIterations = 500;
     private int generation = 0;
@@ -99,8 +99,8 @@ public class Simulator extends JFrame {
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                int mouseX = e.getX();
-                int mouseY = e.getY();
+                int mouseX = e.getX() - getInsets().left;
+                int mouseY = e.getY() - getInsets().top;
 
                 if (firstClick == null) {
                     // First click
@@ -111,15 +111,13 @@ public class Simulator extends JFrame {
                     Point secondClick = new Point(mouseX, mouseY);
                     raceCourse.add(createWall(firstClick, secondClick));
                     pointsCreated.add(secondClick);
-
                     // Reset firstClick for the next wall
                     firstClick = null;
-                    initBarrier();
                 }
             }
         });
 
-        // code for running once window is closed for debugging
+        // code for running once window is closed for debugging for logging
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
@@ -182,6 +180,11 @@ public class Simulator extends JFrame {
         raceCourse.add(createWall(new Point(30 + radius, 800), new Point(30 + radius, 200)));
         raceCourse.add(createWall(new Point(210 + radius, 800), new Point(210 + radius, 200)));
 
+        // small walls between curveU and curveD
+        raceCourse.add(createWall(new Point(40 + radius, 600), new Point(100 + radius, 550)));
+        raceCourse.add(createWall(new Point(200 + radius, 450), new Point(140 + radius, 400)));
+
+
         // second curve down (from cars perspective)
         raceCourse.add(createCurveD(new Point(30 + radius + radius, 200)));
 
@@ -218,18 +221,8 @@ public class Simulator extends JFrame {
         raceCourse.add(createWall(new Point(30 + radius * 5 + 120, 250), new Point(30 + radius * 5 + 140, 250)));
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+        raceCourse.add(createCurveD(new Point(radius * 4 + 30, 200)));
+        raceCourse.add(createCurveD(new Point(radius * 6 + 30, 200)));
 
 
 
@@ -367,6 +360,7 @@ public class Simulator extends JFrame {
                     }
                 }
             }
+
               
             
             repaint(); 
@@ -484,6 +478,8 @@ public class Simulator extends JFrame {
                 case 1:
                     car.angle += adjustedTurnRate;                     
                     break;
+                case 2:
+                    break;
                 default:
                     break;    
             }
@@ -562,9 +558,8 @@ public class Simulator extends JFrame {
 
                 iteration = 0;
                 generation++;
-                System.out.println("Generation: " + generation);
                 resetCars();
-             
+
             }
 
             if (generation >= maxGenerations){

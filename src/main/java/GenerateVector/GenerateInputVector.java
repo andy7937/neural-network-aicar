@@ -22,8 +22,7 @@ public class GenerateInputVector {
         // 4. sensor 5 distance
         // 5. sensor 6 distance
         // 6. sensor 7 distance
-        // 7. car velocity
-        // 8. car acceleration
+
 
 
 
@@ -36,13 +35,6 @@ public class GenerateInputVector {
         Double sensorPoint = sensorDistance.get(i);
         inputVector.putScalar(i, normalize(sensorPoint, 0, 300));
     }
-
-    // Set the car velocity
-    inputVector.putScalar(7, normalize(carVelocity, 0, 100));
-
-    // Set the car acceleration
-    inputVector.putScalar(8, normalize(carAcceleration, -10, 10));
-
 
     return inputVector;
 

@@ -15,6 +15,7 @@ public class GenerateOutputVector {
         // Assuming the neural network has 2 outputs:
         // 1. A (turn left)
         // 2. D (turn right)
+        // 3. Nothing (do nothing)
 
 
         // Get the neural network's predictions
